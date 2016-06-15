@@ -1,0 +1,25 @@
+
+---
+default:
+
+    rest_api:
+        url: 'http://localhost:4999/api/0.1'
+
+    ncbi_cache: ':memory:'
+
+    executor:
+        job_execution: local  # pbs, slurm, local
+        qsub: '/bin/sh'
+        job_queue: uv2000
+        pre_job_source: bashrc
+
+    logging:
+        format: '[%(asctime)s][%(name)s][%(levelname)s] %(message)s'
+        datefmt: '%Y-%b-%d %H:%M:%S'
+        handlers:
+            stdout:
+                level: INFO
+                stream: ext://sys.stdout
+#            another_handler:
+#                level: INFO
+#                filename: /path/to/analysis_driver.log
