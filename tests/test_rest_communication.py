@@ -1,16 +1,21 @@
 import json
+import pytest
 from unittest.mock import patch
 from tests import FakeRestResponse
 from egcg_core import rest_communication
+from egcg_core.exceptions import RestCommunicationError
 
 
 def rest_url(endpoint):
     return 'http://localhost:4999/api/0.1/' + endpoint + '/'
 
 
+def ppath(extension):
+    return 'egcg_core.rest_communication.' + extension
+
+
 test_endpoint = 'an_endpoint'
 test_request_content = {'data': ['some', {'test': 'content'}]}
-
 
 patched_response = patch(
     'requests.request',
@@ -48,28 +53,28 @@ def test_parse_query_string():
     no_query_string = 'http://a_url'
     dodgy_query_string = 'http://a_url?this=that?other=another'
 
-    assert rest_communication.parse_query_string(query_string) == {'this': 'that', 'other': '{"another":"more"}'}
-    assert rest_communication.parse_query_string(no_query_string) is None
+    p = rest_communication._parse_query_string
 
-    try:
-        rest_communication.parse_query_string(dodgy_query_string)
-    except AssertionError as e:
-        assert e.args[0] == 'Bad query string: ' + dodgy_query_string
+    assert p(query_string) == {'this': 'that', 'other': '{"another":"more"}'}
+    assert p(no_query_string) == {}
 
-    try:
-        rest_communication.parse_query_string(query_string, requires=['things'])
-    except AssertionError as e2:
-        assert e2.args[0] == query_string + ' did not contain all required fields: ' + str(['things'])
+    with pytest.raises(RestCommunicationError) as e:
+        p(dodgy_query_string)
+        assert str(e) == 'Bad query string: ' + dodgy_query_string
+
+    with pytest.raises(RestCommunicationError) as e2:
+        p(query_string, requires=['things'])
+        assert str(e2) == query_string + ' did not contain all required fields: ' + str(['things'])
 
 
 @patched_response
-def test_req(mocked_instance):
+def test_req(mocked_response):
     json_content = ['some', {'test': 'json'}]
 
     response = rest_communication._req('METHOD', rest_url(test_endpoint), json=json_content)
     assert response.status_code == 200
     assert json.loads(response.content.decode('utf-8')) == response.json() == test_request_content
-    mocked_instance.assert_called_with('METHOD', rest_url(test_endpoint), json=json_content)
+    mocked_response.assert_called_with('METHOD', rest_url(test_endpoint), json=json_content)
 
 
 def test_get_documents_depaginate():
@@ -78,12 +83,9 @@ def test_get_documents_depaginate():
         FakeRestResponse(content={'data': ['other', 'another'], '_links': {'next': {'href': 'an_endpoint?max_results=101&page=3'}}}),
         FakeRestResponse(content={'data': ['more', 'things'], '_links': {}})
     )
-    patched_req = patch(
-        'egcg_core.rest_communication._req',
-        side_effect=docs
-    )
+    patched_req = patch(ppath('_req'), side_effect=docs)
     with patched_req as mocked_req:
-        assert rest_communication.get_documents('an_endpoint', depaginate=True, max_results=101) == [
+        assert rest_communication.get_documents('an_endpoint', all_pages=True, max_results=101) == [
             'this', 'that', 'other', 'another', 'more', 'things'
         ]
         assert all([a[0][1].startswith(rest_url('an_endpoint')) for a in mocked_req.call_args_list])
@@ -95,34 +97,38 @@ def test_get_documents_depaginate():
 
 
 @patched_response
-def test_get_documents(mocked_instance):
-    data = rest_communication.get_documents(test_endpoint, max_results=100, where={'a_field': 'thing'})
-    assert data == test_request_content['data']
-    assert mocked_instance.call_args[0][1].startswith(rest_url(test_endpoint))
-    assert query_args_from_url(mocked_instance.call_args[0][1]) == {
+def test_test_content(mocked_response):
+    data = rest_communication.get_content(test_endpoint, max_results=100, where={'a_field': 'thing'})
+    assert data == test_request_content
+    assert mocked_response.call_args[0][1].startswith(rest_url(test_endpoint))
+    assert query_args_from_url(mocked_response.call_args[0][1]) == {
         'max_results': '100', 'where': {'a_field': 'thing'}, 'page': '1'
     }
 
 
-@patched_response
-def test_get_document(mocked_instance):
-    assert rest_communication.get_document(test_endpoint, max_results=100, where={'a_field': 'thing'}) == test_request_content['data'][0]
-    assert mocked_instance.call_args[0][1].startswith(rest_url(test_endpoint))
-    assert query_args_from_url(mocked_instance.call_args[0][1]) == {
-        'max_results': '100', 'where': {'a_field': 'thing'}, 'page': '1'
-    }
+def test_get_documents():
+    with patched_response:
+        data = rest_communication.get_documents(test_endpoint, max_results=100, where={'a_field': 'thing'})
+        assert data == test_request_content['data']
+
+
+def test_get_document():
+    expected = test_request_content['data'][0]
+    with patched_response:
+        observed = rest_communication.get_document(test_endpoint, max_results=100, where={'a_field': 'thing'})
+        assert observed == expected
 
 
 @patched_response
-def test_post_entry(mocked_instance):
+def test_post_entry(mocked_response):
     rest_communication.post_entry(test_endpoint, payload=test_request_content)
-    mocked_instance.assert_called_with('POST', rest_url(test_endpoint), json=test_request_content)
+    mocked_response.assert_called_with('POST', rest_url(test_endpoint), json=test_request_content)
 
 
 @patched_response
-def test_put_entry(mocked_instance):
+def test_put_entry(mocked_response):
     rest_communication.put_entry(test_endpoint, 'an_element_id', payload=test_request_content)
-    mocked_instance.assert_called_with('PUT', rest_url(test_endpoint) + 'an_element_id', json=test_request_content)
+    mocked_response.assert_called_with('PUT', rest_url(test_endpoint) + 'an_element_id', json=test_request_content)
 
 
 test_patch_document = {
@@ -158,20 +164,13 @@ test_post_or_patch_doc = {
 }
 
 
-def patched_post(success):
-    return patch('egcg_core.rest_communication.post_entry', return_value=success)
-
-
-def patched_patch(success):
-    return patch('egcg_core.rest_communication._patch_entry', return_value=success)
-
-
-def patched_get(payload):
-    return patch('egcg_core.rest_communication.get_document', return_value=payload)
-
-
 def test_post_or_patch():
-    with patched_get(test_post_or_patch_doc) as mget, patched_patch(True) as mpatch:
+    patched_post = patch(ppath('post_entry'), return_value=True)
+    patched_patch = patch(ppath('_patch_entry'), return_value=True)
+    patched_get = patch(ppath('get_document'), return_value=test_post_or_patch_doc)
+    patched_get_none = patch(ppath('get_document'), return_value=None)
+
+    with patched_get as mget, patched_patch as mpatch:
         success = rest_communication.post_or_patch(
             'an_endpoint',
             [test_post_or_patch_payload],
@@ -187,7 +186,7 @@ def test_post_or_patch():
         )
         assert success is True
 
-    with patched_get(None) as mget, patched_post(True) as mpost:
+    with patched_get_none as mget, patched_post as mpost:
         success = rest_communication.post_or_patch(
             'an_endpoint', [test_post_or_patch_payload], id_field='uid', update_lists=['list_to_update']
         )

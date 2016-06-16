@@ -1,7 +1,8 @@
-from urllib.parse import urljoin
 import requests
+from urllib.parse import urljoin
 from egcg_core.config import default as cfg
 from egcg_core.app_logging import logging_default as log_cfg
+from egcg_core.exceptions import RestCommunicationError
 
 app_logger = log_cfg.get_logger(__name__)
 
@@ -24,15 +25,15 @@ def api_url(endpoint, **query_args):
     return url
 
 
-def parse_query_string(query_string, requires=None):
+def _parse_query_string(query_string, requires=None):
     if '?' not in query_string:
-        return None
+        return {}
     if query_string.count('?') != 1:
-        raise AssertionError('Bad query string: ' + query_string)
+        raise RestCommunicationError('Bad query string: ' + query_string)
     href, query = query_string.split('?')
     query = dict([x.split('=') for x in query.split('&')])
     if requires and not all([r in query for r in requires]):
-        raise AssertionError('%s did not contain all required fields: %s' % (query_string, requires))
+        raise RestCommunicationError('%s did not contain all required fields: %s' % (query_string, requires))
     return query
 
 
@@ -50,21 +51,25 @@ def _req(method, url, quiet=False, **kwargs):
     return r
 
 
-def get_documents(endpoint, paginate=True, depaginate=False, quiet=False, **query_args):
+def get_content(endpoint, paginate=True, quiet=False, **query_args):
     if paginate:
-        page_size = query_args.pop('max_results', 100)  # default to page size of 100
-        page = query_args.pop('page', 1)
-        url = api_url(endpoint, max_results=page_size, page=page, **query_args)
-    else:
-        url = api_url(endpoint, **query_args)
+        query_args.update(
+            max_results=query_args.pop('max_results', 100),  # default to page size of 100
+            page=query_args.pop('page', 1)
+        )
+    url = api_url(endpoint, **query_args)
 
-    content = _req('GET', url, quiet=quiet).json()
+    return _req('GET', url, quiet=quiet).json()
+
+
+def get_documents(endpoint, paginate=True, all_pages=False, quiet=False, **query_args):
+    content = get_content(endpoint, paginate, quiet, **query_args)
     elements = content['data']
 
-    if depaginate and 'next' in content['_links']:
-        next_query = parse_query_string(content['_links']['next']['href'], requires=('max_results', 'page'))
+    if all_pages and 'next' in content['_links']:
+        next_query = _parse_query_string(content['_links']['next']['href'], requires=('max_results', 'page'))
         query_args.update(next_query)
-        elements.extend(get_documents(endpoint, depaginate=True, quiet=quiet, **query_args))
+        elements.extend(get_documents(endpoint, all_pages=True, quiet=quiet, **query_args))
 
     return elements
 
