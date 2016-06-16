@@ -13,5 +13,5 @@ setup(
     description='Common modules for use across EGCG projects. Includes logging, configuration, common '
                 'exceptions, random utility functions, and modules for interfacing with external data '
                 'sources such as EGCG\'s reporting app and Clarity LIMS instance',
-    requires=[l for l in open(requirements).readlines() if not l.startswith('#')]
+    requires=[l for l in open(requirements).readlines() if l and not l.startswith('#')]
 )
