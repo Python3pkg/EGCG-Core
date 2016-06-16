@@ -37,8 +37,7 @@ class Executor(AppLogger):
         :rtype: subprocess.Popen
         """
         self.info('Executing: ' + self.cmd)
-        # TODO: explore how commands that contains bash specific construct can be run ie: command <(sub command)
-        # will need to add shell=True which make some of the test fail
+        # TODO: explore how to run commands with Bash constructs , e.g. 'command <(sub command)'
         self.proc = subprocess.Popen(shlex.split(self.cmd), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         return self.proc
 

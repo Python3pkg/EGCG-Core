@@ -10,8 +10,13 @@ app_logger = log_cfg.get_logger('ncbi')
 data_cache = sqlite3.connect(cfg['ncbi_cache'])
 cursor = data_cache.cursor()
 _create = 'CREATE TABLE IF NOT EXISTS '
-cursor.execute(_create + 'species (taxid text UNIQUE, scientific_name text UNIQUE, common_name text)')
-cursor.execute(_create + 'aliases (query_name text UNIQUE, taxid text REFERENCES species(taxid))')
+
+
+def init_tables():
+    cursor.execute(_create + 'species (taxid text UNIQUE, scientific_name text UNIQUE, common_name text)')
+    cursor.execute(_create + 'aliases (query_name text UNIQUE, taxid text REFERENCES species(taxid))')
+
+init_tables()
 
 
 def get_species_name(query_species):

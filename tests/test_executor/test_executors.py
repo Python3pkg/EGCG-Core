@@ -143,7 +143,7 @@ class TestPBSExecutor(TestClusterExecutor):
     def test_job_status(self):
         qstat = 'egcg_core.executor.cluster_executor.PBSExecutor._qstat'
         fake_report = ('1337', 'a_job', 'a_user', '10:00:00', 'R',  'q')
-        with patch(qstat, return_value=fake_report) as p:
+        with patch(qstat, return_value=fake_report):
             assert self.executor._job_status() == 'R'
 
     def test_job_finished(self):

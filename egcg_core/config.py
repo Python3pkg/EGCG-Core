@@ -30,7 +30,9 @@ class Configuration:
     def query(self, *parts, top_level=None, ret_default=None):
         """
         Drill down into a config, e.g. cfg.query('logging', 'handlers', 'a_handler', 'level')
-        :return: The relevant item if it exists in the config, else None.
+        :param dict top_level:
+        :param ret_default:
+        :return: The relevant item if it exists in the config, else ret_default.
         """
         if top_level is None:
             top_level = self.content
@@ -87,7 +89,8 @@ class EnvConfiguration(Configuration):
 
     def merge(self, override_dict):
         """
-        Merge the provided dict with the config content potententially overiding existing parameters
+        Merge the provided dict with the config content, potentially overriding existing parameters
+        :param dict override_dict:
         """
         self.content = dict(self._merge_dicts(self.content, override_dict))
 

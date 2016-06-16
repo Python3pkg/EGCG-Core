@@ -7,6 +7,12 @@ from egcg_core.exceptions import EGCGError
 
 
 def local_execute(*cmds, parallel=True):
+    """
+    Execute commands locally
+    :param cmds:
+    :param parallel: Whether to execute multiple cmds in parallel or sequentially
+    :return: Executor
+    """
     if len(cmds) == 1:
         if parallel:
             e = StreamExecutor(cmds[0])
@@ -20,6 +26,17 @@ def local_execute(*cmds, parallel=True):
 
 
 def cluster_execute(*cmds, env=None, prelim_cmds=None, **cluster_config):
+    """
+    Execute commands on a compute cluster
+    :param cmds:
+    :param env: The kind of resource manager being run
+    :param prelim_cmds: Any commands to execute before starting a job array
+    :param cluster_config:
+    :return: ClusterExecutor
+    """
+    if env is None:
+        env = cfg.query('executor', 'job_execution')
+
     if env == 'pbs':
         cls = PBSExecutor
     elif env == 'slurm':
@@ -33,15 +50,6 @@ def cluster_execute(*cmds, env=None, prelim_cmds=None, **cluster_config):
 
 
 def execute(*cmds, env=None, prelim_cmds=None, **cluster_config):
-    """
-    :param list[str] cmds: A list where each item is a list of strings to be passed to Executor
-    :param str env:
-    :param cluster_config:
-    :return: Executor
-    """
-    if env is None:
-        env = cfg.query('executor', 'job_execution', ret_default='local')
-
     if env == 'local':
         return local_execute(*cmds)
     else:

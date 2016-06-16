@@ -83,7 +83,6 @@ def get_document(endpoint, idx=0, **query_args):
 
 
 def post_entry(endpoint, payload):
-    """Post a new entry to the endpoint."""
     r = _req('POST', api_url(endpoint), json=payload)
     if r.status_code != 200:
         return False
@@ -91,7 +90,6 @@ def post_entry(endpoint, payload):
 
 
 def put_entry(endpoint, element_id, payload):
-    """Upload, assuming we know the id of the entry."""
     r = _req('PUT', urljoin(api_url(endpoint), element_id), json=payload)
     if r.status_code != 200:
         return False

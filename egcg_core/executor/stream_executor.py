@@ -16,6 +16,7 @@ class StreamExecutor(Thread, Executor):
     def join(self, timeout=None):
         """
         Ensure that both the thread and the subprocess have finished, and return self.proc's exit status.
+        :param int timeout: As Thread.join
         """
         super().join(timeout=timeout)
         if self.exception:

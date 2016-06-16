@@ -6,51 +6,67 @@ from egcg_core.config import default as cfg
 
 class LoggingConfiguration:
     """Stores Loggers, Formatters and Handlers"""
+
+    default_fmt = '[%(asctime)s][%(name)s][%(levelname)s] %(message)s'
+    default_datefmt = '%Y-%b-%d %H:%M:%S'
+
     def __init__(self):
         self.default_formatter = logging.Formatter(
-            fmt=cfg.query('logging', 'format', ret_default='[%(asctime)s][%(name)s][%(levelname)s] %(message)s'),
-            datefmt=cfg.query('logging', 'datefmt', ret_default='%Y-%b-%d %H:%M:%S')
+            fmt=cfg.query('logging', 'format', ret_default=self.default_fmt),
+            datefmt=cfg.query('logging', 'datefmt', ret_default=self.default_datefmt)
         )
         self.blank_formatter = logging.Formatter()
         self.formatter = self.default_formatter
         self.handlers = set()
-        self.loggers = set()
+        self.loggers = {}
         self.log_level = logging.INFO
 
     def get_logger(self, name, level=None):
         """
         Return a logging.Logger object with formatters and handlers added.
-        :param name: A name to assign to the logger (usually __name__)
-        :rtype: logging.Logger
+        :param name: Name to assign to the logger (usually __name__)
+        :param int level: Log level to assign to the logger upon creation
         """
+        if name in self.loggers:
+            return self.loggers[name]
+
         logger = logging.getLogger(name)
+        self.loggers[name] = logger
+
         if level is None:
             level = self.log_level
         logger.setLevel(level)
         for h in self.handlers:
             logger.addHandler(h)
-        self.loggers.add(logger)
+
         return logger
 
     def add_handler(self, handler, level=logging.NOTSET):
-        """Add a handler, set its format/level if needed and register all loggers to it"""
+        """
+        Add a created handler, set its format/level if needed and register all loggers to it
+        :param logging.Handler handler:
+        :param int level: Log level to assign to the created handler
+        """
         if level == logging.NOTSET:
             level = self.log_level
         handler.setLevel(level)
         handler.setFormatter(self.formatter)
-        for l in self.loggers:
-            l.addHandler(handler)
+        for name in self.loggers:
+            self.loggers[name].addHandler(handler)
         self.handlers.add(handler)
 
     def set_log_level(self, level):
         self.log_level = level
         for h in self.handlers:
             h.setLevel(self.log_level)
-        for l in self.loggers:
-            l.setLevel(self.log_level)
+        for name in self.loggers:
+            self.loggers[name].setLevel(self.log_level)
 
     def set_formatter(self, formatter):
-        """Set all handlers to use formatter"""
+        """
+        Set all handlers to use formatter
+        :param logging.Formatter formatter:
+        """
         self.formatter = formatter
         for h in self.handlers:
             h.setFormatter(self.formatter)
