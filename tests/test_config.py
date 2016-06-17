@@ -35,8 +35,8 @@ class TestConfiguration(TestEGCG):
         assert self.cfg.query('logging', 'handlers', 'nonexistent_handler') is None
         assert self.cfg.query('logging') == {
             'stream_handlers': [{'stream': 'ext://sys.stdout', 'level': 'DEBUG'}],
-            'file_handlers': [{'filename': 'test_log', 'mode': 'a', 'level': 'WARNING'}],
-            'timed_rotating_file_handlers': [{'filename': 'test_log', 'when': 'h', 'interval': 1}],
+            'file_handlers': [{'filename': 'tests/assets/test.log', 'mode': 'a', 'level': 'WARNING'}],
+            'timed_rotating_file_handlers': [{'filename': 'tests/assets/test.log', 'when': 'h', 'interval': 1}],
             'datefmt': '%Y-%b-%d %H:%M:%S',
             'format': '[%(asctime)s][%(name)s][%(levelname)s] %(message)s'
         }

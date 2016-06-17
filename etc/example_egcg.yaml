@@ -20,11 +20,11 @@ default:
           - stream: 'ext://sys.stdout'
             level: 'DEBUG'
         file_handlers:
-          - filename: test_log
+          - filename: tests/assets/test.log
             mode: 'a'
             level: 'WARNING'
         timed_rotating_file_handlers:
-          - filename: test_log
+          - filename: tests/assets/test.log
             when: 'h'
             interval: 1
 
