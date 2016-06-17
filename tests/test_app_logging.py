@@ -4,11 +4,12 @@ import logging
 import logging.handlers
 from tests import TestEGCG
 from egcg_core import app_logging
+from egcg_core.config import default as cfg
 
 
 class TestLoggingConfiguration(TestEGCG):
     def setUp(self):
-        self.log_cfg = app_logging.LoggingConfiguration()
+        self.log_cfg = app_logging.LoggingConfiguration(cfg['logging'])
 
     def tearDown(self):
         self.log_cfg = None
@@ -61,12 +62,7 @@ class TestLoggingConfiguration(TestEGCG):
 
     def test_configure_handlers_from_config(self):
         test_log = os.path.join(self.assets_path, 'test.log')
-        logging_cfg = {
-            'stream_handlers': [{'stream': 'ext://sys.stdout', 'level': 'DEBUG'}],
-            'file_handlers': [{'filename': test_log, 'mode': 'a', 'level': 'WARNING'}],
-            'timed_rotating_file_handlers': [{'filename': test_log, 'when': 'h', 'interval': 1}]
-        }
-        self.log_cfg.configure_handlers_from_config(logging_cfg)
+        self.log_cfg.configure_handlers_from_config()
         for h in self.log_cfg.handlers:
             if type(h) is logging.StreamHandler:
                 assert h.stream is sys.stdout and h.level == logging.DEBUG

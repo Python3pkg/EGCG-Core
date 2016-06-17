@@ -18,7 +18,7 @@ class TestConfiguration(TestEGCG):
         get = self.cfg.get
         assert get('nonexistent_thing') is None
         assert get('nonexistent_thing', 'a_default') == 'a_default'
-        assert self.cfg.get('logging').get('handlers').get('stdout').get('level') == 'INFO'
+        assert self.cfg.get('executor').get('job_execution') == 'local'
 
     def test_find_config_file(self):
         existing_cfg_file = os.path.join(self.assets_path, '..', '..', 'etc', 'example_egcg.yaml')
@@ -30,16 +30,13 @@ class TestConfiguration(TestEGCG):
             assert 'Could not find config file in self.cfg_search_path' in str(e)
 
     def test_query(self):
-        assert self.cfg.query('logging', 'handlers', 'stdout', 'level') == 'INFO'
+        assert self.cfg.query('executor', 'job_execution') == 'local'
         assert self.cfg.query('nonexistent_thing') is None
         assert self.cfg.query('logging', 'handlers', 'nonexistent_handler') is None
         assert self.cfg.query('logging') == {
-            'handlers': {
-                'stdout': {
-                    'stream': 'ext://sys.stdout',
-                    'level': 'INFO'
-                }
-            },
+            'stream_handlers': [{'stream': 'ext://sys.stdout', 'level': 'DEBUG'}],
+            'file_handlers': [{'filename': 'test_log', 'mode': 'a', 'level': 'WARNING'}],
+            'timed_rotating_file_handlers': [{'filename': 'test_log', 'when': 'h', 'interval': 1}],
             'datefmt': '%Y-%b-%d %H:%M:%S',
             'format': '[%(asctime)s][%(name)s][%(levelname)s] %(message)s'
         }

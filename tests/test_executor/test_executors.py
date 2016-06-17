@@ -1,7 +1,6 @@
-import pytest
 import os
+import pytest
 import shutil
-import sys
 import logging
 import subprocess
 from unittest.mock import patch, Mock
@@ -9,8 +8,12 @@ from tests import TestEGCG
 from egcg_core.executor import Executor, StreamExecutor, ArrayExecutor, PBSExecutor, SlurmExecutor
 from egcg_core.executor.cluster_executor import ClusterExecutor
 from egcg_core.exceptions import EGCGError
+from egcg_core.app_logging import LoggingConfiguration
+from egcg_core.config import default as cfg
 
-logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
+log_cfg = LoggingConfiguration(cfg)
+log_cfg.set_log_level(logging.DEBUG)
+log_cfg.add_stdout_handler(logging.DEBUG)
 
 get_writer = 'egcg_core.executor.cluster_executor.ClusterExecutor._get_writer'
 get_stdout = 'egcg_core.executor.cluster_executor.ClusterExecutor._get_stdout'
@@ -19,7 +22,9 @@ sleep = 'egcg_core.executor.cluster_executor.sleep'
 
 class TestExecutor(TestEGCG):
     def _get_executor(self, cmd):
-        return Executor(cmd)
+        e = Executor(cmd)
+        e.log_cfg = log_cfg
+        return e
 
     def test_cmd(self):
         e = self._get_executor('ls ' + os.path.join(self.assets_path, '..'))
@@ -41,7 +46,9 @@ class TestExecutor(TestEGCG):
 
 class TestStreamExecutor(TestExecutor):
     def _get_executor(self, cmd):
-        return StreamExecutor(cmd)
+        e = StreamExecutor(cmd)
+        e.log_cfg = log_cfg
+        return e
 
     def test_cmd(self):
         e = self._get_executor(os.path.join(self.assets_path, 'countdown.sh'))
@@ -63,7 +70,9 @@ class TestStreamExecutor(TestExecutor):
 
 class TestArrayExecutor(TestExecutor):
     def _get_executor(self, cmds):
-        return ArrayExecutor(cmds, stream=True)
+        e = ArrayExecutor(cmds, stream=True)
+        e.log_cfg = log_cfg
+        return e
 
     def test_cmd(self):
         e = self._get_executor(['ls', 'ls -lh', 'pwd'])
@@ -98,6 +107,7 @@ class TestClusterExecutor(TestEGCG):
                 job_name='test_job',
                 working_dir=os.path.join(self.assets_path, 'a_run_id')
             )
+            self.executor.log_cfg = log_cfg
 
     def test_get_stdout(self):
         popen = 'egcg_core.executor.executor.subprocess.Popen'
@@ -134,6 +144,7 @@ class TestPBSExecutor(TestClusterExecutor):
                 job_name='test_job',
                 working_dir=os.path.join(self.assets_path, 'a_run_id')
             )
+            self.executor.log_cfg = log_cfg
 
     def test_qstat(self):
         with patch(get_stdout, return_value='this\nthat\nother') as p:
@@ -162,6 +173,7 @@ class TestSlurmExecutor(TestClusterExecutor):
                 job_name='test_job',
                 working_dir=os.path.join(self.assets_path, 'a_run_id')
             )
+            self.executor.log_cfg = log_cfg
 
     def test_sacct(self):
         with patch(get_stdout, return_value='1:0') as p:

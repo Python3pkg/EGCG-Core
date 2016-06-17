@@ -1,3 +1,4 @@
+from sys import stdout
 import logging
 import logging.config
 import logging.handlers
@@ -10,10 +11,11 @@ class LoggingConfiguration:
     default_fmt = '[%(asctime)s][%(name)s][%(levelname)s] %(message)s'
     default_datefmt = '%Y-%b-%d %H:%M:%S'
 
-    def __init__(self):
+    def __init__(self, config):
+        self.cfg = config
         self.default_formatter = logging.Formatter(
-            fmt=cfg.query('logging', 'format', ret_default=self.default_fmt),
-            datefmt=cfg.query('logging', 'datefmt', ret_default=self.default_datefmt)
+            fmt=self.cfg.get('format', self.default_fmt),
+            datefmt=self.cfg.get('datefmt', self.default_datefmt)
         )
         self.blank_formatter = logging.Formatter()
         self.formatter = self.default_formatter
@@ -28,10 +30,10 @@ class LoggingConfiguration:
         :param int level: Log level to assign to the logger upon creation
         """
         if name in self.loggers:
-            return self.loggers[name]
-
-        logger = logging.getLogger(name)
-        self.loggers[name] = logger
+            logger = self.loggers[name]
+        else:
+            logger = logging.getLogger(name)
+            self.loggers[name] = logger
 
         if level is None:
             level = self.log_level
@@ -55,6 +57,9 @@ class LoggingConfiguration:
             self.loggers[name].addHandler(handler)
         self.handlers.add(handler)
 
+    def add_stdout_handler(self, level=logging.INFO):
+        self.add_handler(logging.StreamHandler(stdout), level=level)
+
     def set_log_level(self, level):
         self.log_level = level
         for h in self.handlers:
@@ -71,10 +76,7 @@ class LoggingConfiguration:
         for h in self.handlers:
             h.setFormatter(self.formatter)
 
-    def configure_handlers_from_config(self, handler_cfg):
-        if not handler_cfg:
-            return None
-
+    def configure_handlers_from_config(self):
         configurator = logging.config.BaseConfigurator({})
         handler_classes = {
             'stream_handlers': logging.StreamHandler,
@@ -83,7 +85,7 @@ class LoggingConfiguration:
         }
 
         for handler_type in handler_classes:
-            for handler_cfg in handler_cfg.get(handler_type, []):
+            for handler_cfg in self.cfg.get(handler_type, []):
                 level = logging.getLevelName(handler_cfg.pop('level', self.log_level))
 
                 if 'stream' in handler_cfg:
@@ -92,7 +94,7 @@ class LoggingConfiguration:
                 self.add_handler(handler, level)
 
 
-logging_default = LoggingConfiguration()
+logging_default = LoggingConfiguration(cfg)
 
 
 class AppLogger:

@@ -4,6 +4,8 @@ from os.path import join
 from tests import TestEGCG
 from egcg_core import util
 
+fastq_dir = join(TestEGCG.assets_path, 'fastqs')
+
 
 def test_find_files():
     expected = [join(TestEGCG.assets_path, f) for f in ('ftest.txt', 'ftest_2.txt')]
@@ -16,6 +18,34 @@ def test_find_file():
 
 def test_str_join():
     assert util.str_join('this', 'that', 'other', separator='/') == 'this/that/other'
+
+
+def test_find_fastqs():
+    fastqs = util.find_fastqs(fastq_dir, '10015AT', '10015AT0001')
+    for file_name in ['10015AT0001_S6_L004_R1_001.fastq.gz', '10015AT0001_S6_L004_R2_001.fastq.gz',
+                      '10015AT0001_S6_L005_R1_001.fastq.gz', '10015AT0001_S6_L005_R2_001.fastq.gz']:
+        assert join(fastq_dir, '10015AT', '10015AT0001', file_name) in fastqs
+
+
+def test_find_fastqs_with_lane():
+    fastqs = util.find_fastqs(fastq_dir, '10015AT', '10015AT0001', lane=4)
+    for file_name in ['10015AT0001_S6_L004_R1_001.fastq.gz', '10015AT0001_S6_L004_R2_001.fastq.gz']:
+        assert join(fastq_dir, '10015AT', '10015AT0001', file_name) in fastqs
+
+
+def test_find_all_fastqs():
+    fastqs = util.find_all_fastqs(fastq_dir)
+    for file_name in ['10015AT0001_S6_L004_R1_001.fastq.gz', '10015AT0001_S6_L004_R2_001.fastq.gz']:
+        assert join(fastq_dir, '10015AT', '10015AT0001', file_name) in fastqs
+
+
+def test_find_all_fastq_pairs():
+    fastqs = util.find_all_fastq_pairs(fastq_dir)
+    for f1, f2 in [('10015AT0001_S6_L004_R1_001.fastq.gz', '10015AT0001_S6_L004_R2_001.fastq.gz'),
+                   ('10015AT0001_S6_L005_R1_001.fastq.gz', '10015AT0001_S6_L005_R2_001.fastq.gz')]:
+        fp1 = join(fastq_dir, '10015AT', '10015AT0001', f1)
+        fp2 = join(fastq_dir, '10015AT', '10015AT0001', f2)
+        assert (fp1, fp2) in fastqs
 
 
 def test_same_fs():

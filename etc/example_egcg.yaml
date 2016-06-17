@@ -16,10 +16,19 @@ default:
     logging:
         format: '[%(asctime)s][%(name)s][%(levelname)s] %(message)s'
         datefmt: '%Y-%b-%d %H:%M:%S'
-        handlers:
-            stdout:
-                level: INFO
-                stream: ext://sys.stdout
-#            another_handler:
-#                level: INFO
-#                filename: /path/to/analysis_driver.log
+        stream_handlers:
+          - stream: 'ext://sys.stdout'
+            level: 'DEBUG'
+        file_handlers:
+          - filename: test_log
+            mode: 'a'
+            level: 'WARNING'
+        timed_rotating_file_handlers:
+          - filename: test_log
+            when: 'h'
+            interval: 1
+
+    clarity:
+        baseuri: a_baseuri
+        username: a_user
+        password: a_password
