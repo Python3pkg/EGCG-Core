@@ -2,7 +2,6 @@ from setuptools import setup
 from os.path import join, abspath, dirname
 requirements_txt = join(abspath(dirname(__file__)), 'requirements.txt')
 
-
 ops = ('<=', '>=', '==', '<', '>', '!=')
 
 
