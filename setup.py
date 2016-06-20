@@ -1,6 +1,6 @@
-from distutils.core import setup
+from setuptools import setup
 from os.path import join, abspath, dirname
-requirements = join(abspath(dirname(__file__)), 'requirements.txt')
+requirements_txt = join(abspath(dirname(__file__)), 'requirements.txt')
 
 
 ops = ('<=', '>=', '==', '<', '>', '!=')
@@ -19,6 +19,7 @@ def _translate_req(r):
         req += '(%s)' % version
     return req
 
+requirements = [l.strip() for l in open(requirements_txt) if l and not l.startswith('#')]
 
 setup(
     name='EGCG-Core',
@@ -29,5 +30,6 @@ setup(
     description='Common modules for use across EGCG projects. Includes logging, configuration, common '
                 'exceptions, random utility functions, and modules for interfacing with external data '
                 'sources such as EGCG\'s reporting app and Clarity LIMS instance',
-    requires=[_translate_req(l.strip()) for l in open(requirements) if l and not l.startswith('#')]
+    requires=[_translate_req(r) for r in requirements],  # metadata
+    install_requires=requirements  # actual module requirements
 )
