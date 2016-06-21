@@ -1,1 +1,2 @@
-__version__ = 0.2
+from os.path import join, dirname, abspath
+__version__ = open(join(dirname(dirname(abspath(__file__))), 'version.txt')).read().strip().lstrip('v')
