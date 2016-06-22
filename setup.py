@@ -1,5 +1,6 @@
 from setuptools import setup, find_packages
 from os.path import join, abspath, dirname
+from egcg_core import __version__
 requirements_txt = join(abspath(dirname(__file__)), 'requirements.txt')
 requirements = [l.strip() for l in open(requirements_txt) if l and not l.startswith('#')]
 
@@ -21,7 +22,7 @@ def _translate_req(r):
 
 setup(
     name='EGCG-Core',
-    version=open(join(dirname(abspath(__file__)), 'version.txt')).read().strip().lstrip('v'),
+    version=__version__,
     packages=find_packages(exclude=('tests',)),
     url='https://github.com/EdinburghGenomics/EGCG-Core',
     license='MIT',
