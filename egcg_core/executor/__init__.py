@@ -34,9 +34,6 @@ def cluster_execute(*cmds, env=None, prelim_cmds=None, **cluster_config):
     :param cluster_config:
     :return: ClusterExecutor
     """
-    if env is None:
-        env = cfg.query('executor', 'job_execution')
-
     if env == 'pbs':
         cls = PBSExecutor
     elif env == 'slurm':
@@ -50,6 +47,9 @@ def cluster_execute(*cmds, env=None, prelim_cmds=None, **cluster_config):
 
 
 def execute(*cmds, env=None, prelim_cmds=None, **cluster_config):
+    if env is None:
+        env = cfg.query('executor', 'job_execution')
+
     if env == 'local':
         return local_execute(*cmds)
     else:
