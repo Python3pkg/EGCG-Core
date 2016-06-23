@@ -21,6 +21,7 @@ patched_response = patch(
     'requests.request',
     return_value=FakeRestResponse(status_code=200, content=test_request_content)
 )
+auth = ('a_user', 'a_password')
 
 
 def query_args_from_url(url):
@@ -74,7 +75,7 @@ def test_req(mocked_response):
     response = rest_communication._req('METHOD', rest_url(test_endpoint), json=json_content)
     assert response.status_code == 200
     assert json.loads(response.content.decode('utf-8')) == response.json() == test_request_content
-    mocked_response.assert_called_with('METHOD', rest_url(test_endpoint), json=json_content)
+    mocked_response.assert_called_with('METHOD', rest_url(test_endpoint), auth=auth, json=json_content)
 
 
 def test_get_documents_depaginate():
@@ -122,13 +123,13 @@ def test_get_document():
 @patched_response
 def test_post_entry(mocked_response):
     rest_communication.post_entry(test_endpoint, payload=test_request_content)
-    mocked_response.assert_called_with('POST', rest_url(test_endpoint), json=test_request_content)
+    mocked_response.assert_called_with('POST', rest_url(test_endpoint), auth=None, json=test_request_content)
 
 
 @patched_response
 def test_put_entry(mocked_response):
     rest_communication.put_entry(test_endpoint, 'an_element_id', payload=test_request_content)
-    mocked_response.assert_called_with('PUT', rest_url(test_endpoint) + 'an_element_id', json=test_request_content)
+    mocked_response.assert_called_with('PUT', rest_url(test_endpoint) + 'an_element_id', auth=None, json=test_request_content)
 
 
 test_patch_document = {
@@ -153,6 +154,7 @@ def test_patch_entry(mocked_request, mocked_get_doc):
         'PATCH',
         rest_url(test_endpoint) + '1337',
         headers={'If-Match': 1234567},
+        auth=None,
         json={'list_to_update': ['this', 'that', 'other', 'another']}
     )
 
@@ -182,6 +184,7 @@ def test_post_or_patch():
             'an_endpoint',
             test_post_or_patch_doc,
             test_post_or_patch_payload_no_uid,
+            None,
             ['list_to_update']
         )
         assert success is True
@@ -191,5 +194,5 @@ def test_post_or_patch():
             'an_endpoint', [test_post_or_patch_payload], id_field='uid', update_lists=['list_to_update']
         )
         mget.assert_called_with('an_endpoint', where={'uid': '1337'})
-        mpost.assert_called_with('an_endpoint', test_post_or_patch_payload)
+        mpost.assert_called_with('an_endpoint', test_post_or_patch_payload, None)
         assert success is True
