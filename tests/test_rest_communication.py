@@ -123,13 +123,13 @@ def test_get_document():
 @patched_response
 def test_post_entry(mocked_response):
     rest_communication.post_entry(test_endpoint, payload=test_request_content)
-    mocked_response.assert_called_with('POST', rest_url(test_endpoint), auth=None, json=test_request_content)
+    mocked_response.assert_called_with('POST', rest_url(test_endpoint), auth=auth, json=test_request_content)
 
 
 @patched_response
 def test_put_entry(mocked_response):
     rest_communication.put_entry(test_endpoint, 'an_element_id', payload=test_request_content)
-    mocked_response.assert_called_with('PUT', rest_url(test_endpoint) + 'an_element_id', auth=None, json=test_request_content)
+    mocked_response.assert_called_with('PUT', rest_url(test_endpoint) + 'an_element_id', auth=auth, json=test_request_content)
 
 
 test_patch_document = {
@@ -154,7 +154,7 @@ def test_patch_entry(mocked_request, mocked_get_doc):
         'PATCH',
         rest_url(test_endpoint) + '1337',
         headers={'If-Match': 1234567},
-        auth=None,
+        auth=auth,
         json={'list_to_update': ['this', 'that', 'other', 'another']}
     )
 
