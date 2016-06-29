@@ -1,6 +1,6 @@
 import requests
 from urllib.parse import urljoin
-from egcg_core.config import default as cfg
+from egcg_core.config import cfg
 from egcg_core.app_logging import logging_default as log_cfg
 from egcg_core.exceptions import RestCommunicationError
 

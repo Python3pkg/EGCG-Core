@@ -2,7 +2,7 @@ from sys import stdout
 import logging
 import logging.config
 import logging.handlers
-from egcg_core.config import default as cfg
+from egcg_core.config import cfg
 
 
 class LoggingConfiguration:
@@ -10,18 +10,30 @@ class LoggingConfiguration:
 
     default_fmt = '[%(asctime)s][%(name)s][%(levelname)s] %(message)s'
     default_datefmt = '%Y-%b-%d %H:%M:%S'
+    _formatter = None
+    _default_formatter = None
 
     def __init__(self, config):
         self.cfg = config
-        self.default_formatter = logging.Formatter(
-            fmt=self.cfg.get('format', self.default_fmt),
-            datefmt=self.cfg.get('datefmt', self.default_datefmt)
-        )
         self.blank_formatter = logging.Formatter()
-        self.formatter = self.default_formatter
         self.handlers = set()
         self.loggers = {}
         self.log_level = logging.INFO
+
+    @property
+    def formatter(self):
+        if self._formatter is None:
+            self._formatter = self.default_formatter
+        return self._formatter
+
+    @property
+    def default_formatter(self):
+        if self._default_formatter is None:
+            self._default_formatter = logging.Formatter(
+                fmt=self.cfg.get('format', self.default_fmt),
+                datefmt=self.cfg.get('datefmt', self.default_datefmt)
+            )
+        return self._default_formatter
 
     def get_logger(self, name, level=None):
         """
@@ -72,7 +84,7 @@ class LoggingConfiguration:
         Set all handlers to use formatter
         :param logging.Formatter formatter:
         """
-        self.formatter = formatter
+        self._formatter = formatter
         for h in self.handlers:
             h.setFormatter(self.formatter)
 

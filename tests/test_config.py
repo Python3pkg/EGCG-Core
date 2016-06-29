@@ -25,9 +25,9 @@ class TestConfiguration(TestEGCG):
         non_existing_cfg_file = os.path.join(self.assets_path, 'a_file_that_does_not_exist.txt')
         assert self.cfg._find_config_file((non_existing_cfg_file, existing_cfg_file)) == existing_cfg_file
 
-        with pytest.raises(EGCGError) as e:
-            self.cfg._find_config_file((non_existing_cfg_file,))
-            assert 'Could not find config file in self.cfg_search_path' in str(e)
+        self.cfg.content = None
+        self.cfg._find_config_file((non_existing_cfg_file,))
+        assert self.cfg.content is None
 
     def test_query(self):
         assert self.cfg.query('executor', 'job_execution') == 'local'

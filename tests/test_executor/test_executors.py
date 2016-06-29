@@ -9,7 +9,7 @@ from egcg_core.executor import Executor, StreamExecutor, ArrayExecutor, PBSExecu
 from egcg_core.executor.cluster_executor import ClusterExecutor
 from egcg_core.exceptions import EGCGError
 from egcg_core.app_logging import LoggingConfiguration
-from egcg_core.config import default as cfg
+from egcg_core.config import cfg
 
 log_cfg = LoggingConfiguration(cfg)
 log_cfg.set_log_level(logging.DEBUG)

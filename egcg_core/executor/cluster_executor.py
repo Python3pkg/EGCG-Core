@@ -2,7 +2,7 @@ import subprocess
 from time import sleep
 from egcg_core.exceptions import EGCGError
 from egcg_core.app_logging import AppLogger
-from egcg_core.config import default as cfg
+from egcg_core.config import cfg
 from . import script_writers
 
 
