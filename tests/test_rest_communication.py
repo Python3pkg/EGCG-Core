@@ -139,7 +139,7 @@ test_patch_document = {
 
 @patch('egcg_core.rest_communication.get_document', return_value=test_patch_document)
 @patched_response
-def test_patch_entry(mocked_request, mocked_get_doc):
+def test_patch_entry(mocked_response, mocked_get_doc):
     patching_payload = {'list_to_update': ['another']}
     rest_communication.patch_entry(
         test_endpoint,
@@ -150,7 +150,7 @@ def test_patch_entry(mocked_request, mocked_get_doc):
     )
 
     mocked_get_doc.assert_called_with(test_endpoint, where={'uid': 'a_unique_id'})
-    mocked_request.assert_called_with(
+    mocked_response.assert_called_with(
         'PATCH',
         rest_url(test_endpoint) + '1337',
         headers={'If-Match': 1234567},
@@ -184,7 +184,6 @@ def test_post_or_patch():
             'an_endpoint',
             test_post_or_patch_doc,
             test_post_or_patch_payload_no_uid,
-            None,
             ['list_to_update']
         )
         assert success is True
@@ -194,5 +193,5 @@ def test_post_or_patch():
             'an_endpoint', [test_post_or_patch_payload], id_field='uid', update_lists=['list_to_update']
         )
         mget.assert_called_with('an_endpoint', where={'uid': '1337'})
-        mpost.assert_called_with('an_endpoint', test_post_or_patch_payload, None)
+        mpost.assert_called_with('an_endpoint', test_post_or_patch_payload)
         assert success is True

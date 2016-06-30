@@ -38,14 +38,11 @@ def _parse_query_string(query_string, requires=None):
     return query
 
 
-def _req(method, url, quiet=False, auth=None, **kwargs):
-
-    default_auth = None
+def _req(method, url, quiet=False, **kwargs):
+    auth = None
     if 'username' in cfg and 'password' in cfg:
-        default_auth = (cfg['username'], cfg['password'])
+        auth = (cfg['username'], cfg['password'])
 
-    if auth is None:
-        auth = default_auth
     r = requests.request(method, url, auth=auth, **kwargs)
     # e.g: 'POST <url> ({"some": "args"}) -> {"some": "content"}. Status code 201. Reason: CREATED
     report = '%s %s (%s) -> %s. Status code %s. Reason: %s' % (
@@ -61,51 +58,51 @@ def _req(method, url, quiet=False, auth=None, **kwargs):
     return r
 
 
-def get_content(endpoint, paginate=True, quiet=False, auth=None, **query_args):
+def get_content(endpoint, paginate=True, quiet=False, **query_args):
     if paginate:
         query_args.update(
             max_results=query_args.pop('max_results', 100),  # default to page size of 100
             page=query_args.pop('page', 1)
         )
     url = api_url(endpoint, **query_args)
-    return _req('GET', url, quiet=quiet, auth=auth).json()
+    return _req('GET', url, quiet=quiet).json()
 
 
-def get_documents(endpoint, paginate=True, all_pages=False, quiet=False, auth=None, **query_args):
-    content = get_content(endpoint, paginate, quiet, auth, **query_args)
+def get_documents(endpoint, paginate=True, all_pages=False, quiet=False, **query_args):
+    content = get_content(endpoint, paginate, quiet, **query_args)
     elements = content['data']
 
     if all_pages and 'next' in content['_links']:
         next_query = _parse_query_string(content['_links']['next']['href'], requires=('max_results', 'page'))
         query_args.update(next_query)
-        elements.extend(get_documents(endpoint, all_pages=True, quiet=quiet, auth=auth, **query_args))
+        elements.extend(get_documents(endpoint, all_pages=True, quiet=quiet, **query_args))
 
     return elements
 
 
-def get_document(endpoint, idx=0, auth=None, **query_args):
-    documents = get_documents(endpoint, auth=auth, **query_args)
+def get_document(endpoint, idx=0, **query_args):
+    documents = get_documents(endpoint, **query_args)
     if documents:
         return documents[idx]
     else:
         app_logger.warning('No document found in endpoint %s for %s', endpoint, query_args)
 
 
-def post_entry(endpoint, payload, auth=None):
-    r = _req('POST', api_url(endpoint), auth=auth, json=payload)
+def post_entry(endpoint, payload):
+    r = _req('POST', api_url(endpoint), json=payload)
     if r.status_code != 200:
         return False
     return True
 
 
-def put_entry(endpoint, element_id, payload, auth=None):
-    r = _req('PUT', urljoin(api_url(endpoint), element_id), auth=auth, json=payload)
+def put_entry(endpoint, element_id, payload):
+    r = _req('PUT', urljoin(api_url(endpoint), element_id), json=payload)
     if r.status_code != 200:
         return False
     return True
 
 
-def _patch_entry(endpoint, doc, payload, auth=None, update_lists=None):
+def _patch_entry(endpoint, doc, payload, update_lists=None):
     """
     Patch a specific database item (specified by doc) with the given data payload.
     :param str endpoint:
@@ -121,13 +118,13 @@ def _patch_entry(endpoint, doc, payload, auth=None, update_lists=None):
             content = doc.get(l, [])
             new_content = [x for x in _payload.get(l, []) if x not in content]
             _payload[l] = content + new_content
-    r = _req('PATCH', url, auth=auth, headers=headers, json=_payload)
+    r = _req('PATCH', url, headers=headers, json=_payload)
     if r.status_code == 200:
         return True
     return False
 
 
-def patch_entry(endpoint, payload, id_field, element_id, auth=None, update_lists=None):
+def patch_entry(endpoint, payload, id_field, element_id, update_lists=None):
     """
     Retrieve a document at the given endpoint with the given unique ID, and patch it with some data.
     :param str endpoint:
@@ -138,11 +135,11 @@ def patch_entry(endpoint, payload, id_field, element_id, auth=None, update_lists
     """
     doc = get_document(endpoint, where={id_field: element_id})
     if doc:
-        return _patch_entry(endpoint, doc, payload, auth, update_lists)
+        return _patch_entry(endpoint, doc, payload, update_lists)
     return False
 
 
-def patch_entries(endpoint, payload, update_lists=None, auth=None, **query_args):
+def patch_entries(endpoint, payload, update_lists=None, **query_args):
     """
     Retrieve many documents and patch them all with the same data.
     :param str endpoint:
@@ -155,7 +152,7 @@ def patch_entries(endpoint, payload, update_lists=None, auth=None, **query_args)
         success = True
         nb_docs = 0
         for doc in docs:
-            if _patch_entry(endpoint, doc, payload, auth, update_lists):
+            if _patch_entry(endpoint, doc, payload, update_lists):
                 nb_docs += 1
             else:
                 success = False
@@ -164,7 +161,7 @@ def patch_entries(endpoint, payload, update_lists=None, auth=None, **query_args)
     return False
 
 
-def post_or_patch(endpoint, input_json, auth=None, id_field=None, update_lists=None):
+def post_or_patch(endpoint, input_json, id_field=None, update_lists=None):
     """
     For each document supplied, either post to the endpoint if the unique id doesn't yet exist there, or
     patch if it does.
@@ -179,8 +176,8 @@ def post_or_patch(endpoint, input_json, auth=None, id_field=None, update_lists=N
         doc = get_document(endpoint, where={id_field: _payload[id_field]})
         if doc:
             _payload.pop(id_field)
-            s = _patch_entry(endpoint, doc, _payload, auth, update_lists)
+            s = _patch_entry(endpoint, doc, _payload,  update_lists)
         else:
-            s = post_entry(endpoint, _payload, auth)
+            s = post_entry(endpoint, _payload)
         success = success and s
     return success
