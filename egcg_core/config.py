@@ -8,8 +8,9 @@ class Configuration:
     content = None
 
     def __init__(self, cfg_search_path=None):
-        if cfg_search_path:
-            self.load_config_file(self._find_config_file(cfg_search_path))
+        if cfg_search_path is None:
+            cfg_search_path = []
+        self.load_config_file(self._find_config_file(cfg_search_path))
 
     @staticmethod
     def _find_config_file(search_path):

@@ -3,9 +3,13 @@ from genologics.lims import Lims
 from egcg_core.config import cfg
 from egcg_core.app_logging import logging_default as log_cfg
 from egcg_core.exceptions import LimsCommunicationError
-from .ncbi import get_species_name
 
 app_logger = log_cfg.get_logger('clarity')
+try:
+    from egcg_core.ncbi import get_species_name
+except ImportError:
+    app_logger.error('Could not import egcg_core.ncbi. Is sqlite3 available?')
+
 
 _lims = None
 
