@@ -54,6 +54,8 @@ def _req(method, url, quiet=False, auth=None, **kwargs):
     if r.status_code in (200, 201):
         if not quiet:
             app_logger.debug(report)
+    elif r.status_code == 401:
+        raise RestCommunicationError('Invalid auth credentials')
     else:
         app_logger.error(report)
     return r
