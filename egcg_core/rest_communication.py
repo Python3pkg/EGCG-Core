@@ -4,6 +4,7 @@ from egcg_core.config import cfg
 from egcg_core.app_logging import logging_default as log_cfg
 from egcg_core.exceptions import RestCommunicationError
 
+cfg = cfg['rest_api']
 app_logger = log_cfg.get_logger(__name__)
 
 table = {' ': '', '\'': '"', 'None': 'null'}
@@ -17,7 +18,7 @@ def _translate(s):
 
 def api_url(endpoint, **query_args):
     url = '{base_url}/{endpoint}/'.format(
-        base_url=cfg.query('rest_api', 'url').rstrip('/'), endpoint=endpoint
+        base_url=cfg['url'].rstrip('/'), endpoint=endpoint
     )
     if query_args:
         query = '?' + '&'.join(['%s=%s' % (k, v) for k, v in query_args.items()])
@@ -38,7 +39,11 @@ def _parse_query_string(query_string, requires=None):
 
 
 def _req(method, url, quiet=False, **kwargs):
-    r = requests.request(method, url, **kwargs)
+    auth = None
+    if 'username' in cfg and 'password' in cfg:
+        auth = (cfg['username'], cfg['password'])
+
+    r = requests.request(method, url, auth=auth, **kwargs)
     # e.g: 'POST <url> ({"some": "args"}) -> {"some": "content"}. Status code 201. Reason: CREATED
     report = '%s %s (%s) -> %s. Status code %s. Reason: %s' % (
         r.request.method, r.request.path_url, kwargs, r.content.decode('utf-8'), r.status_code, r.reason
@@ -46,6 +51,8 @@ def _req(method, url, quiet=False, **kwargs):
     if r.status_code in (200, 201):
         if not quiet:
             app_logger.debug(report)
+    elif r.status_code == 401:
+        raise RestCommunicationError('Invalid auth credentials')
     else:
         app_logger.error(report)
     return r
@@ -58,7 +65,6 @@ def get_content(endpoint, paginate=True, quiet=False, **query_args):
             page=query_args.pop('page', 1)
         )
     url = api_url(endpoint, **query_args)
-
     return _req('GET', url, quiet=quiet).json()
 
 

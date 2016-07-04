@@ -4,6 +4,8 @@ default:
 
     rest_api:
         url: 'http://localhost:4999/api/0.1'
+        username: 'a_user'
+        password: 'a_password'
 
     ncbi_cache: ':memory:'
 

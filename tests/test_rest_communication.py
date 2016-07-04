@@ -21,6 +21,7 @@ patched_response = patch(
     'requests.request',
     return_value=FakeRestResponse(status_code=200, content=test_request_content)
 )
+auth = ('a_user', 'a_password')
 
 
 def query_args_from_url(url):
@@ -74,7 +75,7 @@ def test_req(mocked_response):
     response = rest_communication._req('METHOD', rest_url(test_endpoint), json=json_content)
     assert response.status_code == 200
     assert json.loads(response.content.decode('utf-8')) == response.json() == test_request_content
-    mocked_response.assert_called_with('METHOD', rest_url(test_endpoint), json=json_content)
+    mocked_response.assert_called_with('METHOD', rest_url(test_endpoint), auth=auth, json=json_content)
 
 
 def test_get_documents_depaginate():
@@ -122,13 +123,13 @@ def test_get_document():
 @patched_response
 def test_post_entry(mocked_response):
     rest_communication.post_entry(test_endpoint, payload=test_request_content)
-    mocked_response.assert_called_with('POST', rest_url(test_endpoint), json=test_request_content)
+    mocked_response.assert_called_with('POST', rest_url(test_endpoint), auth=auth, json=test_request_content)
 
 
 @patched_response
 def test_put_entry(mocked_response):
     rest_communication.put_entry(test_endpoint, 'an_element_id', payload=test_request_content)
-    mocked_response.assert_called_with('PUT', rest_url(test_endpoint) + 'an_element_id', json=test_request_content)
+    mocked_response.assert_called_with('PUT', rest_url(test_endpoint) + 'an_element_id', auth=auth, json=test_request_content)
 
 
 test_patch_document = {
@@ -138,7 +139,7 @@ test_patch_document = {
 
 @patch('egcg_core.rest_communication.get_document', return_value=test_patch_document)
 @patched_response
-def test_patch_entry(mocked_request, mocked_get_doc):
+def test_patch_entry(mocked_response, mocked_get_doc):
     patching_payload = {'list_to_update': ['another']}
     rest_communication.patch_entry(
         test_endpoint,
@@ -149,10 +150,11 @@ def test_patch_entry(mocked_request, mocked_get_doc):
     )
 
     mocked_get_doc.assert_called_with(test_endpoint, where={'uid': 'a_unique_id'})
-    mocked_request.assert_called_with(
+    mocked_response.assert_called_with(
         'PATCH',
         rest_url(test_endpoint) + '1337',
         headers={'If-Match': 1234567},
+        auth=auth,
         json={'list_to_update': ['this', 'that', 'other', 'another']}
     )
 
