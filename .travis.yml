@@ -12,6 +12,3 @@ notifications:
   email:
     on_success: change # default: change
     on_failure: always # default: always
-env:
-  global:
-    EGCGCONFIG=etc/example_egcg.yaml

@@ -1,22 +1,33 @@
 import re
 import sqlite3
 import requests
-from egcg_core.config import default as cfg
+from egcg_core.config import cfg
 from egcg_core.app_logging import logging_default as log_cfg
 
 app_logger = log_cfg.get_logger('ncbi')
 
-
-data_cache = sqlite3.connect(cfg['ncbi_cache'])
-cursor = data_cache.cursor()
-_create = 'CREATE TABLE IF NOT EXISTS '
+data_cache = None
+cursor = None
 
 
-def init_tables():
+def _connect():
+    global data_cache
+    global cursor
+
+    data_cache = sqlite3.connect(cfg['ncbi_cache'])
+    cursor = data_cache.cursor()
+
+
+def _create_tables():
+    _create = 'CREATE TABLE IF NOT EXISTS '
     cursor.execute(_create + 'species (taxid text UNIQUE, scientific_name text UNIQUE, common_name text)')
     cursor.execute(_create + 'aliases (query_name text UNIQUE, taxid text REFERENCES species(taxid))')
 
-init_tables()
+
+def connect():
+    if data_cache is None and cursor is None:
+        _connect()
+        _create_tables()
 
 
 def get_species_name(query_species):
@@ -31,11 +42,13 @@ def get_species_name(query_species):
 
 
 def _fetch_from_cache(query_species):
+    connect()
     cursor.execute('SELECT * FROM aliases NATURAL JOIN species WHERE query_name=?', (query_species,))
     return cursor.fetchone()
 
 
 def _cache_species(query_species, taxid, scientific_name, common_name):
+    connect()
     cursor.execute('SELECT taxid FROM species WHERE taxid=?', (taxid,))
     if not cursor.fetchone():
         cursor.execute('INSERT INTO species VALUES (?, ?, ?)', (taxid, scientific_name, common_name))

@@ -1,10 +1,10 @@
 import requests
 from urllib.parse import urljoin
-from egcg_core.config import default
+from egcg_core.config import cfg
 from egcg_core.app_logging import logging_default as log_cfg
 from egcg_core.exceptions import RestCommunicationError
 
-cfg = default['rest_api']
+cfg = cfg['rest_api']
 app_logger = log_cfg.get_logger(__name__)
 
 table = {' ': '', '\'': '"', 'None': 'null'}
@@ -176,7 +176,7 @@ def post_or_patch(endpoint, input_json, id_field=None, update_lists=None):
         doc = get_document(endpoint, where={id_field: _payload[id_field]})
         if doc:
             _payload.pop(id_field)
-            s = _patch_entry(endpoint, doc, _payload,  update_lists)
+            s = _patch_entry(endpoint, doc, _payload, update_lists)
         else:
             s = post_entry(endpoint, _payload)
         success = success and s

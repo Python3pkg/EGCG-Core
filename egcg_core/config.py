@@ -4,17 +4,26 @@ from .exceptions import ConfigError
 
 
 class Configuration:
-    def __init__(self, cfg_search_path):
-        self.cfg_search_path = cfg_search_path
-        self.config_file = self._find_config_file(self.cfg_search_path)
-        self.content = yaml.safe_load(open(self.config_file, 'r'))
+    config_file = None
+    content = None
+
+    def __init__(self, cfg_search_path=None):
+        if cfg_search_path is None:
+            cfg_search_path = []
+        self.load_config_file(self._find_config_file(cfg_search_path))
 
     @staticmethod
     def _find_config_file(search_path):
         for p in search_path:
             if p and os.path.isfile(p):
                 return p
-        raise ConfigError('Could not find config file in self.cfg_search_path')
+
+    def load_config_file(self, cfg_file):
+        self.config_file = cfg_file
+        if self.config_file:
+            self.content = yaml.safe_load(open(cfg_file, 'r'))
+        else:
+            self.content = None
 
     def get(self, item, ret_default=None):
         """
@@ -64,12 +73,19 @@ class Configuration:
 
 
 class EnvConfiguration(Configuration):
-    def __init__(self, cfg_search_path):
+    def __init__(self, cfg_search_path=None, env_var='EGCGENV'):
+        self.env_var = os.getenv(env_var, 'default')
         super().__init__(cfg_search_path)
-        env = os.getenv('EGCGENV', 'default')
-        if not self.content.get('default'):
+
+    def load_config_file(self, cfg_file):
+        super().load_config_file(cfg_file)
+        self._select_env()
+
+    def _select_env(self):
+        if self.content and not self.content.get('default'):
             raise ConfigError('Could not find \'default\' environment in ' + self.config_file)
-        self.content = dict(self._merge_dicts(self.content['default'], self.content[env]))
+        elif self.content:
+            self.content = dict(self._merge_dicts(self.content['default'], self.content[self.env_var]))
 
     @classmethod
     def _merge_dicts(cls, default_dict, override_dict):
@@ -104,11 +120,4 @@ def _etc_config(config_file):
     return os.path.join(_dir_path(), 'etc', config_file)
 
 
-# singletons for access by other modules
-default = EnvConfiguration(
-    [
-        os.getenv('EGCGCONFIG'),
-        os.path.expanduser('~/.egcg.yaml'),
-        os.path.join(os.path.dirname(os.path.dirname(__file__)), 'etc', 'example_egcg.yaml')
-    ]
-)
+cfg = EnvConfiguration()

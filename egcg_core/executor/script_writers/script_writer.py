@@ -1,4 +1,4 @@
-import os.path
+from os.path import join
 from egcg_core.app_logging import AppLogger
 
 
@@ -15,10 +15,10 @@ class ScriptWriter(AppLogger):
         :param str job_name: Desired full path to the pbs script to write
         :param int jobs: A number of jobs to submit in an array
         """
-        self.script_name = os.path.join(working_dir, job_name + self.suffix)
+        self.script_name = join(working_dir, job_name + self.suffix)
         self.log_commands = log_commands
         self.working_dir = working_dir
-        self.log_file = os.path.join(self.working_dir, job_name + '.log')
+        self.log_file = join(self.working_dir, job_name + '.log')
         self.queue = job_queue
         self.info('Writing: ' + self.script_name)
         self.info('Log file: ' + self.log_file)

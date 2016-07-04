@@ -25,7 +25,11 @@ class FakeRestResponse(Mock):
 
 
 class TestEGCG(unittest.TestCase):
-    assets_path = os.path.join(os.path.dirname(__file__), 'assets')
+    file_path = os.path.dirname(__file__)
+    assets_path = os.path.join(file_path, 'assets')
+
+    etc = os.path.join(os.path.dirname(file_path), 'etc')
+    etc_config = os.path.join(etc, 'example_egcg.yaml')
 
     @staticmethod
     def compare_lists(observed, expected):

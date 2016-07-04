@@ -1,7 +1,9 @@
 import sqlite3
 from unittest.mock import patch
-from tests import FakeRestResponse
+from tests import TestEGCG, FakeRestResponse
 from egcg_core import ncbi
+from egcg_core.config import cfg
+cfg.load_config_file(TestEGCG.etc_config)
 
 
 fetch_from_eutils = ncbi._fetch_from_eutils
@@ -12,7 +14,7 @@ cache_species = ncbi._cache_species
 def reset_cache():
     ncbi.data_cache = sqlite3.connect(':memory:')
     ncbi.cursor = ncbi.data_cache.cursor()
-    ncbi.init_tables()
+    ncbi._create_tables()
 
 
 def test_fetch_from_eutils():
