@@ -4,7 +4,6 @@ from egcg_core.config import cfg
 from egcg_core.app_logging import logging_default as log_cfg
 from egcg_core.exceptions import RestCommunicationError
 
-cfg = cfg['rest_api']
 app_logger = log_cfg.get_logger(__name__)
 
 table = {' ': '', '\'': '"', 'None': 'null'}
@@ -18,7 +17,7 @@ def _translate(s):
 
 def api_url(endpoint, **query_args):
     url = '{base_url}/{endpoint}/'.format(
-        base_url=cfg['url'].rstrip('/'), endpoint=endpoint
+        base_url=cfg['rest_api']['url'].rstrip('/'), endpoint=endpoint
     )
     if query_args:
         query = '?' + '&'.join(['%s=%s' % (k, v) for k, v in query_args.items()])
@@ -40,8 +39,8 @@ def _parse_query_string(query_string, requires=None):
 
 def _req(method, url, quiet=False, **kwargs):
     auth = None
-    if 'username' in cfg and 'password' in cfg:
-        auth = (cfg['username'], cfg['password'])
+    if 'username' in cfg['rest_api'] and 'password' in cfg['rest_api']:
+        auth = (cfg['rest_api']['username'], cfg['rest_api']['password'])
 
     r = requests.request(method, url, auth=auth, **kwargs)
     # e.g: 'POST <url> ({"some": "args"}) -> {"some": "content"}. Status code 201. Reason: CREATED
