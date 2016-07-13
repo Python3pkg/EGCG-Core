@@ -1,9 +1,11 @@
 import json
 import pytest
 from unittest.mock import patch
-from tests import FakeRestResponse
+from tests import FakeRestResponse, TestEGCG
 from egcg_core import rest_communication
 from egcg_core.exceptions import RestCommunicationError
+from egcg_core.config import cfg
+cfg.load_config_file(TestEGCG.etc_config)
 
 
 def rest_url(endpoint):

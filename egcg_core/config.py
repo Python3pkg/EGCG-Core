@@ -1,4 +1,5 @@
-import os
+from os import getenv
+from os.path import isfile
 import yaml
 from .exceptions import ConfigError
 
@@ -7,21 +8,19 @@ class Configuration:
     config_file = None
     content = None
 
-    def __init__(self, cfg_search_path=None):
-        if cfg_search_path is None:
-            cfg_search_path = []
-        self.load_config_file(self._find_config_file(cfg_search_path))
+    def __init__(self, *search_path):
+        self.load_config_file(self._find_config_file(search_path))
 
     @staticmethod
     def _find_config_file(search_path):
         for p in search_path:
-            if p and os.path.isfile(p):
+            if p and isfile(p):
                 return p
 
-    def load_config_file(self, cfg_file):
-        self.config_file = cfg_file
+    def load_config_file(self, *search_path):
+        self.config_file = self._find_config_file(search_path)
         if self.config_file:
-            self.content = yaml.safe_load(open(cfg_file, 'r'))
+            self.content = yaml.safe_load(open(self.config_file, 'r'))
         else:
             self.content = None
 
@@ -60,25 +59,23 @@ class Configuration:
         return yaml.safe_dump(self.content, default_flow_style=False)
 
     def __getitem__(self, item):
-        """
-        Allow dict-style access, e.g. config['this'] or config['this']['that']
-        """
+        """Allow dict-style access, e.g. config['this'] or config['this']['that']."""
         return self.content[item]
 
     def __contains__(self, item):
-        """
-        Allow search in the first layer of the config with "in" operator
-        """
+        """Allow search in the first layer of the config with 'in' operator."""
         return self.content.__contains__(item)
 
 
 class EnvConfiguration(Configuration):
-    def __init__(self, cfg_search_path=None, env_var='EGCGENV'):
-        self.env_var = os.getenv(env_var, 'default')
-        super().__init__(cfg_search_path)
+    def __init__(self, *search_path, env_var='EGCGENV'):
+        self.env_var = getenv(env_var, 'default')
+        super().__init__(*search_path)
 
-    def load_config_file(self, cfg_file):
-        super().load_config_file(cfg_file)
+    def load_config_file(self, *search_path, env_var=None):
+        if env_var is not None:
+            self.env_var = env_var
+        super().load_config_file(*search_path)
         self._select_env()
 
     def _select_env(self):
@@ -89,9 +86,7 @@ class EnvConfiguration(Configuration):
 
     @classmethod
     def _merge_dicts(cls, default_dict, override_dict):
-        """
-        Recursively merge a default dict and an overriding dict.
-        """
+        """Recursively merge a default dict and an overriding dict."""
         for k in set(override_dict.keys()).union(default_dict.keys()):
             if k in default_dict and k in override_dict:
                 if type(default_dict[k]) is dict and type(override_dict[k]) is dict:
@@ -109,15 +104,5 @@ class EnvConfiguration(Configuration):
         :param dict override_dict:
         """
         self.content = dict(self._merge_dicts(self.content, override_dict))
-
-
-def _dir_path():
-    """Find the absolute path of 2 dirs above this file (should be Analysis-Driver)"""
-    return os.path.dirname(os.path.abspath(os.path.dirname(__file__)))
-
-
-def _etc_config(config_file):
-    return os.path.join(_dir_path(), 'etc', config_file)
-
 
 cfg = EnvConfiguration()

@@ -1,4 +1,5 @@
-import os
+from os import makedirs
+from os.path import join
 import shutil
 from egcg_core.executor import script_writers
 from tests import TestEGCG
@@ -9,8 +10,8 @@ class TestScriptWriter(TestEGCG):
     exp_header = []
 
     def setUp(self):
-        self.working_dir = os.path.join(self.assets_path, 'test_script_writer_wd')
-        os.makedirs(self.working_dir, exist_ok=True)
+        self.working_dir = join(self.assets_path, 'test_script_writer_wd')
+        makedirs(self.working_dir, exist_ok=True)
         self.script_writer = script_writers.ScriptWriter('a_job_name', self.working_dir, 'a_job_queue')
 
     def tearDown(self):
@@ -50,12 +51,12 @@ class TestScriptWriter(TestEGCG):
     def test_write_array_cmd(self):
         self.script_writer._write_array_cmd(1337, 'an_array_cmd')
         self.script_writer._write_array_cmd(
-            1338, 'another_array_cmd', log_file=os.path.join(self.assets_path, 'a_log_file')
+            1338, 'another_array_cmd', log_file=join(self.assets_path, 'a_log_file')
         )
         self._compare_writer_lines(
             [
                 '1337) an_array_cmd\n' + ';;',
-                '1338) another_array_cmd > ' + os.path.join(self.assets_path, 'a_log_file') + ' 2>&1''\n;;'
+                '1338) another_array_cmd > ' + join(self.assets_path, 'a_log_file') + ' 2>&1''\n;;'
             ]
         )
 
@@ -86,7 +87,7 @@ class TestScriptWriter(TestEGCG):
     def test_save(self):
         self.script_writer.write_line('a_line')
         self.script_writer._save()
-        assert open(self.script_writer.script_name, 'r').readlines() == ['a_line\n']
+        assert 'a_line\n' in open(self.script_writer.script_name, 'r').readlines()
 
     def test_trim_field(self):
         assert self.script_writer._trim_field('a_field_name_too_long_for_pbs', 15) == 'a_field_name_to'
@@ -112,7 +113,7 @@ class TestPBSWriter(TestScriptWriter):
             '#PBS -l ncpus=2,mem=1gb',
             '#PBS -q a_job_queue',
             '#PBS -j oe',
-            '#PBS -o ' + os.path.join(self.working_dir, 'a_job_name.log'),
+            '#PBS -o ' + join(self.working_dir, 'a_job_name.log'),
             '#PBS -W block=true',
             '#PBS -l walltime=3:00:00',
             '#PBS -N a_job_name',
@@ -139,7 +140,7 @@ class TestPBSWriter(TestScriptWriter):
             '#PBS -l ncpus=2,mem=1gb',
             '#PBS -q a_job_queue',
             '#PBS -j oe',
-            '#PBS -o ' + os.path.join(self.working_dir, 'a_job_name.log'),
+            '#PBS -o ' + join(self.working_dir, 'a_job_name.log'),
             '#PBS -W block=true',
             '#PBS -N a_job_name',
             'cd ' + self.script_writer.working_dir,
@@ -147,12 +148,56 @@ class TestPBSWriter(TestScriptWriter):
         ]
         self.compare_lists(script_writer.lines, exp_header)
 
-    def test_start_array(self):
-        self.script_writer._start_array()
-        self._compare_writer_lines(['case $PBS_ARRAY_INDEX in\n'])
 
-    def test_save(self):
-        self.script_writer.write_line('a_line')
-        self.script_writer._save()
-        expected = '\n'.join(self.exp_header + ['a_line', ''])
-        assert open(self.script_writer.script_name, 'r').read() == expected
+class TestSlurmWriter(TestScriptWriter):
+    array_index = 'SLURM_ARRAY_TASK_ID'
+
+    def setUp(self):
+        super().setUp()
+        self.script_writer = script_writers.SlurmWriter(
+            'a_job_name',
+            self.working_dir,
+            'a_job_queue',
+            walltime=3,
+            cpus=2,
+            mem=1,
+            jobs=1,
+            log_commands=True
+        )
+        self.exp_header = [
+            '#!/bin/bash\n',
+            '#SBATCH --mem=1g',
+            '#SBATCH --cpus-per-task=2',
+            '#SBATCH --partition=a_job_queue',
+            '#SBATCH --output=' + join(self.working_dir, 'a_job_name.log'),
+            '#SBATCH --time=3:00:00',
+            '#SBATCH --job-name="a_job_name"',
+            'cd ' + self.script_writer.working_dir,
+            ''
+        ]
+
+    def test_write_header(self):
+        self.compare_lists(self.script_writer.lines, self.exp_header)
+
+    def test_write_header_no_walltime(self):
+        script_writer = script_writers.SlurmWriter(
+            'a_job_name',
+            self.working_dir,
+            'a_job_queue',
+            walltime=None,
+            cpus=2,
+            mem=1,
+            jobs=1,
+            log_commands=True
+        )
+        exp_header = [
+            '#!/bin/bash\n',
+            '#SBATCH --mem=1g',
+            '#SBATCH --cpus-per-task=2',
+            '#SBATCH --partition=a_job_queue',
+            '#SBATCH --output=' + join(self.working_dir, 'a_job_name.log'),
+            '#SBATCH --job-name="a_job_name"',
+            'cd ' + self.script_writer.working_dir,
+            ''
+        ]
+        self.compare_lists(script_writer.lines, exp_header)
