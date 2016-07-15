@@ -76,7 +76,7 @@ def _fetch_from_eutils(species):
         rank = None
         if match:
             rank = match.group(1)
-        if rank == 'species':
+        if rank in ['species', 'subspecies']:
             scientific_name = common_name = None
             match = re.search('<ScientificName>(.+?)</ScientificName>', r.text, re.MULTILINE)
             if match:
