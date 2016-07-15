@@ -59,15 +59,6 @@ def test_fetch_from_eutils():
             'http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi',
             params={'db': 'Taxonomy', 'id': '1337'}
         )
-    patched_get = patch(
-        'egcg_core.ncbi.requests.get',
-        side_effect=(
-            FakeRestResponse(content=ncbi_search_data),
-            FakeRestResponse(content=ncbi_fetch_data),
-            FakeRestResponse(content=ncbi_fetch_data),
-            FakeRestResponse(content=ncbi_fetch_data)
-        )
-    )
     with patched_get2:
         obs = fetch_from_eutils('a_species')
         assert obs == ('1337', 'Genus species', 'a common name')
