@@ -38,9 +38,8 @@ class ClusterExecutor(AppLogger):
             sleep(30)
         return self._job_exit_code()
 
-    @classmethod
-    def _get_writer(cls, job_name, working_dir, walltime=None, cpus=1, mem=2, jobs=1, log_commands=True):
-        return cls.script_writer(job_name, working_dir, cfg['job_queue'], cpus, mem, walltime, jobs, log_commands)
+    def _get_writer(self, job_name, working_dir, walltime=None, cpus=1, mem=2, jobs=1, log_commands=True):
+        return self.script_writer(job_name, working_dir, self.job_queue, cpus, mem, walltime, jobs, log_commands)
 
     def _job_status(self):
         raise NotImplementedError
