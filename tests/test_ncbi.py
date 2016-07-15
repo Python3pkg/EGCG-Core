@@ -24,6 +24,11 @@ def test_fetch_from_eutils():
         <OtherNames><CommonName>a common name</CommonName></OtherNames>
         <Rank>species</Rank>
     '''
+    ncbi_fetch_data_sub_spe = '''
+        <ScientificName>Genus species</ScientificName>
+        <OtherNames><CommonName>a common name</CommonName></OtherNames>
+        <Rank>subspecies</Rank>
+    '''
 
     patched_get = patch(
         'egcg_core.ncbi.requests.get',
@@ -34,7 +39,15 @@ def test_fetch_from_eutils():
             FakeRestResponse(content=ncbi_fetch_data)
         )
     )
-
+    patched_get2 = patch(
+        'egcg_core.ncbi.requests.get',
+        side_effect=(
+            FakeRestResponse(content=ncbi_search_data),
+            FakeRestResponse(content=ncbi_fetch_data_sub_spe),
+            FakeRestResponse(content=ncbi_fetch_data_sub_spe),
+            FakeRestResponse(content=ncbi_fetch_data_sub_spe)
+        )
+    )
     with patched_get as mocked_get:
         obs = fetch_from_eutils('a_species')
         assert obs == ('1337', 'Genus species', 'a common name')
@@ -46,6 +59,19 @@ def test_fetch_from_eutils():
             'http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi',
             params={'db': 'Taxonomy', 'id': '1337'}
         )
+    patched_get = patch(
+        'egcg_core.ncbi.requests.get',
+        side_effect=(
+            FakeRestResponse(content=ncbi_search_data),
+            FakeRestResponse(content=ncbi_fetch_data),
+            FakeRestResponse(content=ncbi_fetch_data),
+            FakeRestResponse(content=ncbi_fetch_data)
+        )
+    )
+    with patched_get2:
+        obs = fetch_from_eutils('a_species')
+        assert obs == ('1337', 'Genus species', 'a common name')
+
 
 
 def test_cache():
