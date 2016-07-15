@@ -104,15 +104,31 @@ def test_get_list_of_samples():
     exp_lims_sample_ids = ['this', 'that:01', 'other _L:01']
     calling_sample_ids = ['this', 'that_01', 'other__L_01']
     fake_list_samples = [[FakeEntity(n)] for n in exp_lims_sample_ids]
-    pbatch = patched_lims('get_batch')
     psamples = patched_lims('get_samples', side_effect=fake_list_samples)
 
-    with pbatch, psamples as mocked_get_samples:
+    with patched_lims('get_batch'), psamples as mocked_get_samples:
         samples = clarity.get_list_of_samples(calling_sample_ids)
         assert [s.name for s in samples] == exp_lims_sample_ids
         mocked_get_samples.assert_any_call(name=['this', 'that_01', 'other__L_01'])
         mocked_get_samples.assert_any_call(name=['other__L:01', 'that:01'])
         mocked_get_samples.assert_any_call(name=['other _L:01'])
+
+
+def test_get_list_of_samples_broken():
+    exp_lims_sample_ids = ['this', 'that:01', 'other _L:01']
+    calling_sample_ids = ['this', 'that_01', 'other__L_01']
+    fake_list_samples = [[FakeEntity(n)] for n in exp_lims_sample_ids]
+    psamples = patched_lims('get_samples', side_effect=fake_list_samples)
+    log_msgs = []
+    pwarn = patched('app_logger.warning', new=log_msgs.append)
+
+    with patched_lims('get_batch'), psamples as mocked_get_samples, pwarn:
+        samples = clarity.get_list_of_samples(calling_sample_ids + ['sample_not_in_lims'])
+        assert [s.name for s in samples] == exp_lims_sample_ids
+        mocked_get_samples.assert_any_call(name=['this', 'that_01', 'other__L_01', 'sample_not_in_lims'])
+        mocked_get_samples.assert_any_call(name=['other__L:01', 'sample_not_in_lims', 'that:01'])
+        mocked_get_samples.assert_any_call(name=['other _L:01', 'sample_not_in_lims'])
+        assert log_msgs == ["Could not find ['sample_not_in_lims'] in Lims"]
 
 
 @patched_lims('get_samples', side_effect=[[], [], [None]])
@@ -206,8 +222,7 @@ def test_get_output_containers_from_sample_and_step_name(mocked_get_sample, mock
 
 
 @patched_clarity('get_sample_names_from_plate', ['this', 'that', 'other'])
-@patched_clarity('get_sample',
-                 Mock(artifact=Mock(container=FakeEntity('a_container', type=FakeEntity('96 well plate')))))
+@patched_clarity('get_sample', Mock(artifact=Mock(container=FakeEntity('a_container', type=FakeEntity('96 well plate')))))
 def test_get_samples_arrived_with(mocked_get_sample, mocked_names_from_plate):
     assert clarity.get_samples_arrived_with('a_sample_name') == ['this', 'that', 'other']
     mocked_get_sample.assert_called_with('a_sample_name')

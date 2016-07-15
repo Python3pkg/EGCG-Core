@@ -2,13 +2,16 @@ import re
 from genologics.lims import Lims
 from egcg_core.config import cfg
 from egcg_core.app_logging import logging_default as log_cfg
-from egcg_core.exceptions import LimsCommunicationError
+from egcg_core.exceptions import EGCGError
 
 app_logger = log_cfg.get_logger('clarity')
 try:
     from egcg_core.ncbi import get_species_name
 except ImportError:
-    app_logger.error('Could not import egcg_core.ncbi. Is sqlite3 available?')
+    app_logger.warning('Could not import egcg_core.ncbi. Is sqlite3 available?')
+
+    def get_species_name(query_species):
+        raise EGCGError('Could not import egcg_core.ncbi.get_species_name - sqlite3 seems to be unavailable.')
 
 
 _lims = None
@@ -91,8 +94,8 @@ def sanitize_user_id(user_id):
 
 substitutions = (
     (None, None),
-    (re.compile('_(\d{2})$'), ':\g<1>'),
-    (re.compile('__(\w):(\d{2})'), ' _\g<1>:\g<2>')
+    (re.compile('_(\d{2})$'), ':\g<1>'),  # '_01' -> ':01'
+    (re.compile('__(\w):(\d{2})'), ' _\g<1>:\g<2>')  # '__L:01' -> ' _L:01'
 )
 
 
@@ -115,11 +118,12 @@ def _get_list_of_samples(sample_names, sub=0):
     lims.get_batch(samples)
 
     if len(samples) != len(sample_names):  # haven't got all the samples because some had _01/__L:01
+        sub += 1
+        remainder = sorted(set(_sample_names).difference(set([s.name for s in samples])))
         if sub < len(substitutions):
-            remainder = sorted(set(_sample_names).difference(set([s.name for s in samples])))
-            samples.extend(_get_list_of_samples(remainder, sub + 1))
-        else:
-            raise LimsCommunicationError('Expected %s back, got %s' % (_sample_names, len(samples)))
+            samples.extend(_get_list_of_samples(remainder, sub))
+        else:  # end recursion
+            app_logger.warning('Could not find %s in Lims' % remainder)
 
     return samples
 
