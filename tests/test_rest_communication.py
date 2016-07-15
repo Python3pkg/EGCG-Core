@@ -44,7 +44,13 @@ class TestRestCommunication(TestEGCG):
     def setUp(self):
         self.comm = rest_communication.Communicator()
 
-    def test_api_url_query_strings(self):
+    def test_hash_auth_token(self):
+        assert self.comm._hash_auth_token('a_token') == 'YV90b2tlbg=='
+
+    def test_translate(self):
+        assert self.comm._translate("  '' None") == '""null'
+
+    def test_api_url(self):
         assert self.comm._api_url('an_endpoint') == rest_url('an_endpoint')
         exp = '?where={"this":"that"}&embedded={"things":1}&aggregate=True&sort=-_created'
         obs = self.comm._api_url(
@@ -198,3 +204,9 @@ class TestRestCommunication(TestEGCG):
                 self.comm.baseurl + 'an_endpoint',
                 headers={'Authorization': 'Token ' + hashed_token}
             )
+
+
+def test_default():
+    d = rest_communication.default
+    assert d.baseurl == 'http://localhost:4999/api/0.1'
+    assert d.auth == ('a_user', 'a_password')

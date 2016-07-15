@@ -8,6 +8,7 @@ from egcg_core.exceptions import RestCommunicationError
 
 class Communicator(AppLogger):
     table = {' ': '', '\'': '"', 'None': 'null'}
+    successful_statuses = (200, 201)
 
     def __init__(self, auth=None, baseurl=None):
         self._baseurl = baseurl
@@ -68,7 +69,7 @@ class Communicator(AppLogger):
         report = '%s %s (%s) -> %s. Status code %s. Reason: %s' % (
             r.request.method, r.request.path_url, kwargs, r.content.decode('utf-8'), r.status_code, r.reason
         )
-        if r.status_code in (200, 201):
+        if r.status_code in self.successful_statuses:
             if not quiet:
                 self.debug(report)
         elif r.status_code == 401:
@@ -106,15 +107,11 @@ class Communicator(AppLogger):
 
     def post_entry(self, endpoint, payload):
         r = self._req('POST', self._api_url(endpoint), json=payload)
-        if r.status_code != 200:
-            return False
-        return True
+        return r.status_code in self.successful_statuses
 
     def put_entry(self, endpoint, element_id, payload):
         r = self._req('PUT', urljoin(self._api_url(endpoint), element_id), json=payload)
-        if r.status_code != 200:
-            return False
-        return True
+        return r.status_code in self.successful_statuses
 
     def _patch_entry(self, endpoint, doc, payload, update_lists=None):
         """
@@ -133,9 +130,7 @@ class Communicator(AppLogger):
                 new_content = [x for x in _payload.get(l, []) if x not in content]
                 _payload[l] = content + new_content
         r = self._req('PATCH', url, headers=headers, json=_payload)
-        if r.status_code == 200:
-            return True
-        return False
+        return r.status_code in self.successful_statuses
 
     def patch_entry(self, endpoint, payload, id_field, element_id, update_lists=None):
         """
@@ -195,7 +190,6 @@ class Communicator(AppLogger):
 
 
 default = Communicator()
-
 get_content = default.get_content
 get_documents = default.get_documents
 get_document = default.get_document
