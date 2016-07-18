@@ -51,9 +51,9 @@ class TestRestCommunication(TestEGCG):
         assert self.comm._translate("  '' None") == '""null'
 
     def test_api_url(self):
-        assert self.comm._api_url('an_endpoint') == rest_url('an_endpoint')
+        assert self.comm.api_url('an_endpoint') == rest_url('an_endpoint')
         exp = '?where={"this":"that"}&embedded={"things":1}&aggregate=True&sort=-_created'
-        obs = self.comm._api_url(
+        obs = self.comm.api_url(
             'an_endpoint',
             where={'this': 'that'},
             embedded={'things': 1},

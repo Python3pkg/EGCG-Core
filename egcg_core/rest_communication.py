@@ -36,7 +36,7 @@ class Communicator(AppLogger):
             s = s.replace(k, v)
         return s
 
-    def _api_url(self, endpoint, **query_args):
+    def api_url(self, endpoint, **query_args):
         url = '{base_url}/{endpoint}/'.format(
             base_url=self.baseurl, endpoint=endpoint
         )
@@ -84,7 +84,7 @@ class Communicator(AppLogger):
                 max_results=query_args.pop('max_results', 100),  # default to page size of 100
                 page=query_args.pop('page', 1)
             )
-        url = self._api_url(endpoint, **query_args)
+        url = self.api_url(endpoint, **query_args)
         return self._req('GET', url, quiet=quiet).json()
 
     def get_documents(self, endpoint, paginate=True, all_pages=False, quiet=False, **query_args):
@@ -106,11 +106,11 @@ class Communicator(AppLogger):
             self.warning('No document found in endpoint %s for %s', endpoint, query_args)
 
     def post_entry(self, endpoint, payload):
-        r = self._req('POST', self._api_url(endpoint), json=payload)
+        r = self._req('POST', self.api_url(endpoint), json=payload)
         return r.status_code in self.successful_statuses
 
     def put_entry(self, endpoint, element_id, payload):
-        r = self._req('PUT', urljoin(self._api_url(endpoint), element_id), json=payload)
+        r = self._req('PUT', urljoin(self.api_url(endpoint), element_id), json=payload)
         return r.status_code in self.successful_statuses
 
     def _patch_entry(self, endpoint, doc, payload, update_lists=None):
@@ -121,7 +121,7 @@ class Communicator(AppLogger):
         :param dict payload: Data with which to patch doc
         :param list update_lists: Doc items listed here will be appended rather than replaced by the patch
         """
-        url = urljoin(self._api_url(endpoint), doc['_id'])
+        url = urljoin(self.api_url(endpoint), doc['_id'])
         _payload = dict(payload)
         headers = {'If-Match': doc.get('_etag')}
         if update_lists:
@@ -190,6 +190,7 @@ class Communicator(AppLogger):
 
 
 default = Communicator()
+api_url = default.api_url
 get_content = default.get_content
 get_documents = default.get_documents
 get_document = default.get_document
