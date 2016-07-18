@@ -44,9 +44,6 @@ class TestRestCommunication(TestEGCG):
     def setUp(self):
         self.comm = rest_communication.Communicator()
 
-    def test_hash_auth_token(self):
-        assert self.comm._hash_auth_token('a_token') == 'YV90b2tlbg=='
-
     def test_translate(self):
         assert self.comm._translate("  '' None") == '""null'
 
@@ -194,9 +191,8 @@ class TestRestCommunication(TestEGCG):
             assert success is True
 
     def test_token_auth(self):
-        token = '{"token": "some"}.tokenauthentication'
-        hashed_token = 'eyJ0b2tlbiI6ICJzb21lIn0udG9rZW5hdXRoZW50aWNhdGlvbg=='
-        self.comm._auth = token
+        hashed_token = '{"some": "hashed"}.tokenauthentication'
+        self.comm._auth = hashed_token
         with patched_response as p:
             self.comm._req('GET', self.comm.baseurl + 'an_endpoint')
             p.assert_called_with(

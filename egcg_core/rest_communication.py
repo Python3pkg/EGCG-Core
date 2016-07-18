@@ -26,10 +26,6 @@ class Communicator(AppLogger):
             self._auth = (cfg['rest_api']['username'], cfg['rest_api']['password'])
         return self._auth
 
-    @staticmethod
-    def _hash_auth_token(token):
-        return b64encode(token.encode()).decode('utf-8')
-
     @classmethod
     def _translate(cls, s):
         for k, v in cls.table.items():
@@ -62,7 +58,7 @@ class Communicator(AppLogger):
             kwargs.update(auth=self.auth)
         elif type(self.auth) is str:
             # noinspection PyTypeChecker
-            kwargs.update(headers={'Authorization': 'Token ' + self._hash_auth_token(self.auth)})
+            kwargs.update(headers={'Authorization': 'Token ' + self.auth})
 
         r = requests.request(method, url, **kwargs)
         # e.g: 'POST <url> ({"some": "args"}) -> {"some": "content"}. Status code 201. Reason: CREATED
