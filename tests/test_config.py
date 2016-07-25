@@ -1,3 +1,4 @@
+from os import environ
 from os.path import join
 from tests import TestEGCG
 from egcg_core.config import Configuration, EnvConfiguration
@@ -45,6 +46,14 @@ class TestEnvConfiguration(TestConfiguration):
     def test_query(self):
         assert self.cfg.query('logging', 'handlers', 'nonexistent_handler') is None
         assert self.cfg.query('logging', 'datefmt') == '%Y-%b-%d %H:%M:%S'
+
+    def test_load_config_file(self):
+        expected_content = self.cfg.content
+        self.cfg.content = None
+        environ['TESTENV'] = 'another_env'
+        self.cfg.load_config_file(self.etc_config, env_var='TESTENV')
+        expected_content['ncbi_cache'] = 'path/to/ncbi.sqlite'
+        assert self.cfg.content == expected_content
 
     def test_merge_dicts(self):
         default_dict = {

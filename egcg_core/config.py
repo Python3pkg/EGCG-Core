@@ -69,7 +69,7 @@ class Configuration:
 
 class EnvConfiguration(Configuration):
     def __init__(self, *search_path, env_var='EGCGENV'):
-        self.env_var = getenv(env_var, 'default')
+        self.env_var = env_var
         super().__init__(*search_path)
 
     def load_config_file(self, *search_path, env_var=None):
@@ -80,9 +80,10 @@ class EnvConfiguration(Configuration):
 
     def _select_env(self):
         if self.content and not self.content.get('default'):
-            raise ConfigError('Could not find \'default\' environment in ' + self.config_file)
+            raise ConfigError("Could not find 'default' environment in " + self.config_file)
         elif self.content:
-            self.content = dict(self._merge_dicts(self.content['default'], self.content[self.env_var]))
+            env = getenv(self.env_var, 'default')
+            self.content = dict(self._merge_dicts(self.content['default'], self.content[env]))
 
     @classmethod
     def _merge_dicts(cls, default_dict, override_dict):

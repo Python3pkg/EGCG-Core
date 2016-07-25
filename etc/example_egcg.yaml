@@ -34,3 +34,6 @@ default:
         baseuri: a_baseuri
         username: a_user
         password: a_password
+
+another_env:
+  ncbi_cache: 'path/to/ncbi.sqlite'
