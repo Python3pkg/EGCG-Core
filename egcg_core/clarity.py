@@ -32,7 +32,7 @@ def get_valid_lanes(flowcell_name):
     """
     containers = connection().get_containers(type='Patterned Flowcell', name=flowcell_name)
     if len(containers) != 1:
-        app_logger.warning('%s Flowcell(s) found for name %s', len(containers), flowcell_name)
+        app_logger.warning('%s Flowcell(s) found for %s', len(containers), flowcell_name)
         return None
 
     flowcell = containers[0]
@@ -43,7 +43,7 @@ def get_valid_lanes(flowcell_name):
         if not artifact.udf.get('Lane Failed?', False):
             valid_lanes.append(lane)
     valid_lanes = sorted(valid_lanes)
-    app_logger.info('Valid lanes for %s: %s', flowcell_name, str(valid_lanes))
+    app_logger.info('Valid lanes for flowcell %s: %s', flowcell_name, str(valid_lanes))
     return valid_lanes
 
 
@@ -54,7 +54,7 @@ def find_project_name_from_sample(sample_name):
         if len(project_names) == 1:
             return project_names.pop()
         else:
-            app_logger.error('%s projects found for sample %s', len(project_names), sample_name)
+            app_logger.error("%s projects found for sample '%s'", len(project_names), sample_name)
 
 
 def find_run_elements_from_sample(sample_name):
@@ -80,7 +80,7 @@ def get_species_from_sample(sample_name):
         species_strings = set([s.udf.get('Species') for s in samples])
         nspecies = len(species_strings)
         if nspecies != 1:
-            app_logger.error('%s species found for sample %s', nspecies, sample_name)
+            app_logger.error("%s species found for sample '%s'", nspecies, sample_name)
             return None
         species_string = species_strings.pop()
         if species_string:
@@ -146,7 +146,7 @@ def get_sample(sample_name):
     if len(samples) == 1:
         return samples[0]
     else:
-        app_logger.warning('%s Sample(s) found for name %s', len(samples), sample_name)
+        app_logger.warning('%s Sample(s) found for %s', len(samples), sample_name)
 
 
 def get_user_sample_name(sample_name, lenient=False):
@@ -296,10 +296,10 @@ def get_sample_release_date(sample_id):
     if len(procs) == 1:
         return procs[0].date_run
     else:
-        app_logger.warning('%s Processes found for sample %s with Artifact %s', len(procs), sample_id, s.artifact.id)
+        app_logger.warning("%s Processes found for sample '%s' with Artifact %s", len(procs), sample_id, s.artifact.id)
 
 
-def get_library_id(sample_id):
+def get_library_ids_for_sample(sample_id):
     if not get_sample(sample_id):
         return None
     artifacts = connection().get_artifacts(
@@ -307,7 +307,7 @@ def get_library_id(sample_id):
         type='Analyte',
         process_type='AUTOMATED - Clean Up ALP'
     )
-    if len(artifacts) == 1:
-        return artifacts[0].udf.get('Raw Library ID')
+    if not artifacts:
+        app_logger.warning("No 'Clean Up ALP' artifacts found for sample " + sample_id)
     else:
-        app_logger.warning("%s 'Clean Up ALP' Artifacts found for sample %s", (len(artifacts), sample_id))
+        return set(a.udf.get('Raw Library ID') for a in artifacts)

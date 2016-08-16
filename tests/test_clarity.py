@@ -267,8 +267,8 @@ def test_get_sample_release_date(mocked_get_procs, mocked_get_sample):
 
 @patched_clarity('get_sample', Mock(name='a_sample_name'))
 @patched_lims('get_artifacts', [Mock(udf={'Raw Library ID': 'a_library_id'})])
-def test_get_library_id(mocked_get_artifacts, mocked_get_sample):
-    assert clarity.get_library_id('a_sample_name') == 'a_library_id'
+def test_get_library_ids(mocked_get_artifacts, mocked_get_sample):
+    assert clarity.get_library_ids_for_sample('a_sample_name') == {'a_library_id'}
     mocked_get_artifacts.assert_called_with(
         sample_name='a_sample_name',
         type='Analyte',
