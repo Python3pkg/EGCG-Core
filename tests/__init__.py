@@ -31,7 +31,7 @@ class TestEGCG(unittest.TestCase):
     etc = os.path.join(os.path.dirname(file_path), 'etc')
     etc_config = os.path.join(etc, 'example_egcg.yaml')
 
-    @staticmethod
+    @+staticmethod
     def compare_lists(observed, expected):
         if sorted(observed) != sorted(expected):
             print('')
