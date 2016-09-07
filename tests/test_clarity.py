@@ -258,8 +258,14 @@ def test_get_released_samples(mocked_lims):
 
 
 @patched_clarity('get_sample', Mock(artifact=Mock(id='an_artifact_id')))
-@patched_lims('get_processes', [FakeProcess])
+@patched_lims('get_processes', side_effect=[[FakeProcess], [FakeProcess, FakeProcess]])
 def test_get_sample_release_date(mocked_get_procs, mocked_get_sample):
     assert clarity.get_sample_release_date('a_sample_name') == 'a_date_run'
     mocked_get_procs.assert_called_with(type='Data Release EG 1.0', inputartifactlimsid='an_artifact_id')
     mocked_get_sample.assert_called_with('a_sample_name')
+    mocked_get_procs.reset_mock()
+    mocked_get_sample.reset_mock()
+
+    date = clarity.get_sample_release_date('a_sample_name2') == 'a_date_run'
+    print(date)
+

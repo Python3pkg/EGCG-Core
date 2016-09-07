@@ -1,4 +1,6 @@
 import re
+
+import datetime
 from genologics.lims import Lims
 from egcg_core.config import cfg
 from egcg_core.app_logging import logging_default as log_cfg
@@ -298,6 +300,6 @@ def get_sample_release_date(sample_id):
     if not procs:
         return None
     elif len(procs) != 1:
-        app_logger.warning('%s Processes found for sample %s with Artifact %s', len(procs), sample_id, s.artifact.id)
-        return None
+        app_logger.warning('%s Processes found for sample %s: Return latest one', len(procs), sample_id)
+        return sorted([p.date_run for p in procs], reversed=True)[0]
     return procs[0].date_run
