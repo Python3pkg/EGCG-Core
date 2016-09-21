@@ -89,7 +89,7 @@ def main():
 
     sys.path.append(dirname(dirname(abspath(__file__))))
     from egcg_core import config
-    validate_main_config(config.default, sys.argv[2])
+    validate_main_config(config.cfg, sys.argv[2])
 
 
 if __name__ == '__main__':

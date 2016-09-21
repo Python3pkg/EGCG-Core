@@ -64,7 +64,6 @@ def test_fetch_from_eutils():
         assert obs == ('1337', 'Genus species', 'a common name')
 
 
-
 def test_cache():
     assert fetch_from_cache('a species') is None
     cache_species('a species', '1337', 'Scientific name', 'a species')

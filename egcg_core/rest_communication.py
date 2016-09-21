@@ -1,6 +1,5 @@
 import requests
 from urllib.parse import urljoin
-from base64 import b64encode
 from egcg_core.config import cfg
 from egcg_core.app_logging import AppLogger
 from egcg_core.exceptions import RestCommunicationError
@@ -61,6 +60,9 @@ class Communicator(AppLogger):
             kwargs.update(headers={'Authorization': 'Token ' + self.auth})
 
         r = requests.request(method, url, **kwargs)
+
+        kwargs.pop('auth', None)
+        kwargs.pop('headers', None)
         # e.g: 'POST <url> ({"some": "args"}) -> {"some": "content"}. Status code 201. Reason: CREATED
         report = '%s %s (%s) -> %s. Status code %s. Reason: %s' % (
             r.request.method, r.request.path_url, kwargs, r.content.decode('utf-8'), r.status_code, r.reason
