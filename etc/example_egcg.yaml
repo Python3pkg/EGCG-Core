@@ -35,5 +35,19 @@ default:
         username: a_user
         password: a_password
 
+    notifications:
+        email:
+            sender: 'a_sender'
+            recipients: ['this', 'that', 'other']
+            mailhost: 'localhost'
+            port: 1337
+            strict: True
+
+        asana:
+            access_token: 'an_access_token'
+            workspace_id: 1337
+            project_id: 1338
+
+
 another_env:
   ncbi_cache: 'path/to/ncbi.sqlite'
