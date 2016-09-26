@@ -12,11 +12,10 @@ class AsanaNotification(Notification):
         self.workspace_id = self.config['workspace_id']
         self.project_id = self.config['project_id']
         self._task = None
-        self.task_template = {
-            'name': task_id,
-            'notes': self.config.get('task_description'),
-            'projects': [self.project_id]
-        }
+        self.task_template = {'name': task_id, 'projects': [self.project_id]}
+        task_description = self.config.get('task_description')
+        if task_description:
+            self.task_template['notes'] = self.config.get('task_description')
 
     def notify(self, msg):
         self.client.tasks.add_comment(self.task['id'], text=msg)
