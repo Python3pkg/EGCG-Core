@@ -26,6 +26,7 @@ ELEMENT_NB_Q30_R2_CLEANED = 'clean_q30_bases_r2'
 ELEMENT_LANE_PC_OPT_DUP = 'lane_pc_optical_dups'
 ELEMENT_FASTQC_REPORT_R1 = 'fastqc_report_r1'
 ELEMENT_FASTQC_REPORT_R2 = 'fastqc_report_r2'
+ELEMENT_ADAPTER_TRIM = 'adapters_trimmed'
 
 ELEMENT_SAMPLE_EXTERNAL_ID = 'user_sample_id'
 ELEMENT_NB_READS_IN_BAM = 'bam_file_reads'
