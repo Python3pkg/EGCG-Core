@@ -8,21 +8,18 @@ from .notification import Notification
 
 
 class EmailNotification(Notification):
-    config_domain = 'email'
-
-    def __init__(self, name):
+    def __init__(self, name, mailhost, port, sender, recipients, strict=False, email_template=None):
         super().__init__(name)
-        self.reporter = self.config['sender']
-        self.recipients = self.config['recipients']
-        self.mailhost = self.config['mailhost']
-        self.strict = self.config.get('strict', False)
-        self.port = self.config['port']
-        self.email_template = self.config.get(
-            'email_template',
-            join(dirname(abspath(__file__)), '..', '..', 'etc', 'email_notification.html')
-        )
+        self.mailhost = mailhost
+        self.port = port
+        self.sender = sender
+        self.recipients = recipients
+        self.strict = strict
+        self.email_template = email_template
+        if email_template is None:
+            self.email_template = join(dirname(abspath(__file__)), '..', '..', 'etc', 'email_notification.html')
 
-    def notify(self, body):
+    def _notify(self, body):
         msg = self._prepare_message(body)
         mail_success = self._try_send(msg)
         if not mail_success:
@@ -61,7 +58,7 @@ class EmailNotification(Notification):
         )
 
         msg['Subject'] = self.name
-        msg['From'] = self.reporter
+        msg['From'] = self.sender
         msg['To'] = ','.join(self.recipients)
         return msg
 
@@ -75,7 +72,7 @@ class EmailNotification(Notification):
         connection = smtplib.SMTP(self.mailhost, self.port)
         connection.send_message(
             msg,
-            self.reporter,
+            self.sender,
             self.recipients
         )
         connection.quit()

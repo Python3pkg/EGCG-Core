@@ -3,13 +3,11 @@ from .notification import Notification
 
 
 class LogNotification(Notification):
-    """Logs via log_cfg, and also to a notification file with the format'[date time][dataset_name] msg'"""
+    """Logs via log_cfg, and also to a notification file with the format'[date time][self.name] msg'"""
 
-    config_domain = 'log'
-
-    def __init__(self, name):
+    def __init__(self, name, log_file):
         super().__init__(name)
-        handler = logging.FileHandler(filename=self.config['log_file'], mode='a')
+        handler = logging.FileHandler(filename=log_file, mode='a')
         handler.setFormatter(
             logging.Formatter(
                 fmt='[%(asctime)s][' + self.name + '] %(message)s',
@@ -19,5 +17,5 @@ class LogNotification(Notification):
         handler.setLevel(logging.INFO)
         self._logger.addHandler(handler)
 
-    def notify(self, msg):
+    def _notify(self, msg):
         self.info(msg)

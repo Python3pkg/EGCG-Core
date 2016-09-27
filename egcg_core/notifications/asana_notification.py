@@ -3,21 +3,18 @@ from .notification import Notification
 
 
 class AsanaNotification(Notification):
-    config_domain = 'asana'
-
-    def __init__(self, task_id):
-        super().__init__(task_id)
+    def __init__(self, name, workspace_id, project_id, access_token, task_description=None):
+        super().__init__(name)
         self.task_id = self.name
-        self.client = asana.Client.access_token(self.config['access_token'])
-        self.workspace_id = self.config['workspace_id']
-        self.project_id = self.config['project_id']
+        self.workspace_id = workspace_id
+        self.project_id = project_id
+        self.client = asana.Client.access_token(access_token)
         self._task = None
-        self.task_template = {'name': task_id, 'projects': [self.project_id]}
-        task_description = self.config.get('task_description')
+        self.task_template = {'name': name, 'projects': [self.project_id]}
         if task_description:
-            self.task_template['notes'] = self.config.get('task_description')
+            self.task_template['notes'] = task_description
 
-    def notify(self, msg):
+    def _notify(self, msg):
         self.client.tasks.add_comment(self.task['id'], text=msg)
         self.client.tasks.update(self.task['id'], completed=False)
 

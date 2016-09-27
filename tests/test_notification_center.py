@@ -28,18 +28,37 @@ class FakeSMTP(Mock):
 
 class TestNotificationCenter(TestEGCG):
     def setUp(self):
-        self.notification_center = NotificationCentre('a_name')
-        self.notification_center.setup_subscribers(Mock(), Mock())
+        with patch('egcg_core.notifications.NotificationCentre.ntf_aliases',
+                   new={'asana': Mock, 'email': Mock}):
+            self.notification_center = NotificationCentre('a_name')
+
+    def test_config_init(self):
+        e = self.notification_center.subscribers['email']
+        assert e.sender == 'this'
+        assert e.recipients == ['that', 'other']
+        assert e.mailhost == 'localhost'
+        assert e.port == 1337
+        assert e.strict is True
+
+        a = self.notification_center.subscribers['asana']
+        assert a.workspace_id == 1337
+        assert a.project_id == 1338
 
     def test_notify(self):
-        self.notification_center.notify('a message')
-        for s in self.notification_center.subscribers:
+        self.notification_center.notify_all('a message')
+        for name, s in self.notification_center.subscribers.items():
             s.notify.assert_called_with('a message')
 
 
 class TestEmailNotification(TestEGCG):
     def setUp(self):
-        self.email_ntf = EmailNotification('a_name')
+        self.email_ntf = EmailNotification(
+            'a_name', sender='a_sender',
+            recipients=['this', 'that', 'other'],
+            mailhost='localhost',
+            port=1337,
+            strict=True
+        )
 
     def test_retries(self):
         with patch('smtplib.SMTP', new=FakeSMTP), patch('egcg_core.notifications.email_notification.sleep'):
@@ -53,7 +72,12 @@ class TestEmailNotification(TestEGCG):
 
 class TestAsanaNotification(TestEGCG):
     def setUp(self):
-        self.ntf = AsanaNotification('another_name')
+        self.ntf = AsanaNotification(
+            'another_name',
+            workspace_id=1337,
+            project_id=1338,
+            access_token='an_access_token'
+        )
         self.ntf.client = Mock(
             tasks=Mock(
                 find_all=Mock(return_value=[{'name': 'this'}]),

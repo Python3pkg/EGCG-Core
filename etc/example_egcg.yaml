@@ -37,8 +37,8 @@ default:
 
     notifications:
         email:
-            sender: 'a_sender'
-            recipients: ['this', 'that', 'other']
+            sender: 'this'
+            recipients: ['that', 'other']
             mailhost: 'localhost'
             port: 1337
             strict: True

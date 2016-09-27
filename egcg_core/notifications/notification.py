@@ -1,13 +1,20 @@
-from egcg_core.config import cfg
 from egcg_core.app_logging import AppLogger
 
 
 class Notification(AppLogger):
-    config_domain = 'generic'
+    preprocess = None
 
-    def __init__(self, name):
+    def __init__(self, name, **kwargs):
         self.name = name
-        self.config = cfg['notifications'][self.config_domain]
+
+    def _notify(self, msg):
+        raise NotImplementedError
 
     def notify(self, msg):
-        raise NotImplementedError
+        if self.preprocess:
+            msg = self.preprocess(msg)
+        return self._notify(msg)
+
+    @staticmethod
+    def preprocess_message(msg):
+        return msg
