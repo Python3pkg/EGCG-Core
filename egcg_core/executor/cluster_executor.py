@@ -33,7 +33,7 @@ class ClusterExecutor(AppLogger):
 
         self.writer.line_break()
         self.writer.register_cmds(*self.cmds)
-        self.writer.write_header()
+        self.writer.add_header()
         self.writer.save()
 
     def start(self):

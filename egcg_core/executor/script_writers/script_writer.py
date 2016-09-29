@@ -81,30 +81,18 @@ class ScriptWriter(AppLogger):
         self.lines.append('')
 
     def save(self):
-        """Save self.lines to self.script_file. Also closes it. Always close the file."""
+        """Save self.lines to self.script_name."""
         with open(self.script_name, 'w') as f:
-            for line in self.lines:
-                f.write(line + '\n')
-
-    @staticmethod
-    def _trim_field(field, max_length):
-        """
-        Required for, e.g, name fields which break PBS if longer than 15 chars
-        :return: field, trimmed to max_length
-        """
-        if len(field) > max_length:
-            return field[0:max_length]
-        else:
-            return field
+            f.write('\n'.join(self.lines) + '\n')
 
 
 class ClusterWriter(ScriptWriter):
     header = (
-        '#!/bin/bash\n\n'
-        '# job name: {job_name}\n'
-        '# cpus: {cpus}\n'
-        '# mem: {mem}gb\n'
-        '# queue: {queue}\n'
+        '#!/bin/bash\n',
+        '# job name: {job_name}',
+        '# cpus: {cpus}',
+        '# mem: {mem}gb',
+        '# queue: {queue}',
         '# log file: {log_file}'
     )
     walltime_header = '# walltime: {walltime}'
@@ -114,17 +102,19 @@ class ClusterWriter(ScriptWriter):
         super().__init__(job_name, working_dir, job_queue, log_commands)
         self.cluster_config = cluster_config
 
-    def write_header(self):
+    def add_header(self):
         """Write a header for a given resource manager. If multiple jobs, split them into a job array."""
-        h = self.header.format(job_name=self.job_name, cpus=self.cluster_config['cpus'],
-                               mem=self.cluster_config['mem'], queue=self.queue, log_file=self.log_file)
-        header_lines = [h]
+        fmt = {'job_name': self.job_name, 'cpus': self.cluster_config['cpus'],
+               'mem': self.cluster_config['mem'], 'queue': self.queue, 'log_file': self.log_file,
+               'walltime': self.cluster_config.get('walltime'), 'jobs': str(self.array_jobs_written)}
 
-        if self.cluster_config['walltime']:
-            header_lines.append(self.walltime_header.format(walltime=self.cluster_config['walltime']))
+        header_lines = list(self.header)
+
+        if 'walltime' in self.cluster_config:
+            header_lines.append(self.walltime_header)
 
         if self.array_jobs_written > 1:
-            header_lines.append(self.array_header.format(jobs=str(self.array_jobs_written)))
+            header_lines.append(self.array_header)
 
         header_lines.extend(['', 'cd ' + self.working_dir, ''])
-        self.lines = header_lines + self.lines  # prepend the header
+        self.lines = [l.format(**fmt) for l in header_lines] + self.lines  # prepend the formatted header

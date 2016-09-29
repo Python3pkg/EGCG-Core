@@ -49,7 +49,8 @@ class TestScriptWriter(TestEGCG):
         assert 'a_line\n' in open(self.script_writer.script_name, 'r').readlines()
 
     def test_trim_field(self):
-        assert self.script_writer._trim_field('a_field_name_too_long_for_pbs', 15) == 'a_field_name_to'
+        s = script_writers.PBSWriter('a_job_name_too_long_for_pbs', 'a_working_dir', 'a_job_queue')
+        assert s.job_name == 'a_job_name_too_'
 
 
 class TestClusterWriter(TestScriptWriter):
@@ -68,14 +69,12 @@ class TestClusterWriter(TestScriptWriter):
         'esac'
     ]
     exp_header = [
-        (
-            '#!/bin/bash\n\n'
-            '# job name: a_job_name\n'
-            '# cpus: 1\n'
-            '# mem: 2gb\n'
-            '# queue: a_job_queue\n'
-            '# log file: ' + join(working_dir, 'a_job_name.log')
-        ),
+        '#!/bin/bash\n',
+        '# job name: a_job_name',
+        '# cpus: 1',
+        '# mem: 2gb',
+        '# queue: a_job_queue',
+        '# log file: ' + join(working_dir, 'a_job_name.log'),
         '# walltime: 3',
         '# job array: 1-3',
         '',
@@ -99,7 +98,7 @@ class TestClusterWriter(TestScriptWriter):
         self.script_writer.log_commands = False
         self.script_writer.register_cmds('some', 'preliminary', 'cmds')
         self.script_writer.register_cmds('this', 'that', 'other', parallel=True)
-        self.script_writer.write_header()
+        self.script_writer.add_header()
 
         obs = self.script_writer.lines
         exp = self.exp_header + self.exp_cmds
@@ -110,14 +109,12 @@ class TestPBSWriter(TestScriptWriter):
     writer_cls = script_writers.PBSWriter
     array_index = 'PBS_ARRAY_INDEX'
     exp_header = [
-        (
-            '#!/bin/bash\n\n'
-            '#PBS -N a_job_name\n'
-            '#PBS -l ncpus=1,mem=2gb\n'
-            '#PBS -q a_job_queue\n'
-            '#PBS -j oe\n'
-            '#PBS -o ' + join(working_dir, 'a_job_name.log')
-        ),
+        '#!/bin/bash\n',
+        '#PBS -N a_job_name',
+        '#PBS -l ncpus=1,mem=2gb',
+        '#PBS -q a_job_queue',
+        '#PBS -j oe',
+        '#PBS -o ' + join(working_dir, 'a_job_name.log'),
         '#PBS -l walltime=3',
         '#PBS -J 1-3',
         '',
@@ -129,14 +126,12 @@ class TestSlurmWriter(TestScriptWriter):
     writer_cls = script_writers.SlurmWriter
     array_index = 'SLURM_ARRAY_TASK_ID'
     exp_header = [
-        (
-            '#!/bin/bash\n\n'
-            '#SBATCH --job-name=a_job_name\n'
-            '#SBATCH --cpus-PER-TASK=1\n'
-            '#SBATCH --mem=2gb\n'
-            '#SBATCH --partition=a_job_queue\n'
-            '#SBATCH --output=' + join(working_dir, 'a_job_name.log')
-        ),
+        '#!/bin/bash\n',
+        '#SBATCH --job-name=a_job_name',
+        '#SBATCH --cpus-PER-TASK=1',
+        '#SBATCH --mem=2gb',
+        '#SBATCH --partition=a_job_queue',
+        '#SBATCH --output=' + join(working_dir, 'a_job_name.log'),
         '#SBATCH --time=3:00:00',
         '#SBATCH --array=1-3',
         '',

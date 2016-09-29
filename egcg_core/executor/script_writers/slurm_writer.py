@@ -7,11 +7,11 @@ class SlurmWriter(ClusterWriter):
     array_index = 'SLURM_ARRAY_TASK_ID'
 
     header = (
-        '#!/bin/bash\n\n'
-        '#SBATCH --job-name="{job_name}"\n'
-        '#SBATCH --cpus-per-task={cpus}\n'
-        '#SBATCH --mem={mem}g\n'
-        '#SBATCH --partition={queue}\n'
+        '#!/bin/bash\n',
+        '#SBATCH --job-name="{job_name}"',
+        '#SBATCH --cpus-per-task={cpus}',
+        '#SBATCH --mem={mem}g',
+        '#SBATCH --partition={queue}',
         '#SBATCH --output={log_file}'
     )
     walltime_header = '#SBATCH --time={walltime}:00:00'
