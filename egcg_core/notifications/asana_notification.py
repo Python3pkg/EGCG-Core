@@ -21,7 +21,7 @@ class AsanaNotification(Notification):
     @property
     def task(self):
         if self._task is None:
-            tasks = list(self.client.tasks.find_all(project=self.project_id, completed=False))
+            tasks = list(self.client.tasks.find_all(project=self.project_id))
             task_ent = self._get_entity(tasks, self.task_id)
             if task_ent is None:
                 task_ent = self._create_task()
