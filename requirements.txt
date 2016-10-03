@@ -2,3 +2,5 @@ requests>=2.9.1
 pytest>=2.7.2
 PyYAML>=3.11
 genologics>=0.3.2
+jinja2==2.8
+asana==0.5.1
