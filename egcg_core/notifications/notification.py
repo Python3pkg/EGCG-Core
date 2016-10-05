@@ -4,7 +4,7 @@ from egcg_core.app_logging import AppLogger
 class Notification(AppLogger):
     preprocess = None
 
-    def __init__(self, name, **kwargs):
+    def __init__(self, name):
         self.name = name
 
     def _notify(self, msg):

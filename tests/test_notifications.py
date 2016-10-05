@@ -26,7 +26,7 @@ class FakeSMTP(Mock):
         pass
 
 
-class TestNotificationCenter(TestEGCG):
+class TestNotificationCentre(TestEGCG):
     def setUp(self):
         with patch('egcg_core.notifications.NotificationCentre.ntf_aliases',
                    new={'asana': Mock, 'email': Mock}):
