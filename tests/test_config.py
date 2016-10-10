@@ -1,7 +1,8 @@
 from os import environ
 from os.path import join
+import pytest
 from tests import TestEGCG
-from egcg_core.config import Configuration, EnvConfiguration
+from egcg_core.config import Configuration, EnvConfiguration, ConfigError
 
 
 class TestConfiguration(TestEGCG):
@@ -12,16 +13,21 @@ class TestConfiguration(TestEGCG):
         existing_cfg_file = self.etc_config
         non_existing_cfg_file = join(self.etc, 'non_existent.yaml')
         assert self.cfg._find_config_file((non_existing_cfg_file, existing_cfg_file)) == existing_cfg_file
-
-        self.cfg.content = None
-        self.cfg._find_config_file((non_existing_cfg_file,))
-        assert self.cfg.content is None
+        assert self.cfg._find_config_file((non_existing_cfg_file,)) is None
 
     def test_load_config_file(self):
+        existing_cfg_file = self.etc_config
+        non_existing_cfg_file = join(self.etc, 'non_existent.yaml')
+
         original_content = self.cfg.content
-        self.cfg.content = None
-        self.cfg.load_config_file(self.etc_config)
+        self.cfg.content = {}
+        self.cfg.load_config_file(existing_cfg_file)
         assert self.cfg.content == original_content
+
+        self.cfg.content = {}
+        with pytest.raises(ConfigError) as e:
+            self.cfg.load_config_file(non_existing_cfg_file)
+            assert str(e) == 'Could not find any config file in specified search path'
 
     def test_get(self):
         assert self.cfg.get('nonexistent_thing') is None
@@ -49,7 +55,7 @@ class TestEnvConfiguration(TestConfiguration):
 
     def test_load_config_file(self):
         expected_content = self.cfg.content
-        self.cfg.content = None
+        self.cfg.content = {}
         environ['TESTENV'] = 'another_env'
         self.cfg.load_config_file(self.etc_config, env_var='TESTENV')
         expected_content['ncbi_cache'] = 'path/to/ncbi.sqlite'
@@ -57,46 +63,22 @@ class TestEnvConfiguration(TestConfiguration):
 
     def test_merge_dicts(self):
         default_dict = {
-            'this': {
-                'another': [2, 3, 4],
-                'more': {
-                    'thing': 'thang'
-                }
-            },
+            'this': {'another': [2, 3, 4], 'more': {'thing': 'thang'}},
             'that': 'a_thing',
-            'other': {
-                'another': [2, '3', 4],
-                'more': {
-                    'thing': 'thang'
-                }
-            }
+            'other': {'another': [2, '3', 4], 'more': {'thing': 'thang'}}
         }
         override_dict = {
             'that': 'another_thing',
             'another': 4,
             'more': 5,
-            'other': {
-                'another': [8, 9, 10],
-                'more': {'thung': 'theng'}
-            }
+            'other': {'another': [8, 9, 10], 'more': {'thung': 'theng'}}
         }
         merged_dict = self.cfg._merge_dicts(default_dict, override_dict)
 
         assert dict(merged_dict) == {
-            'this': {
-                'another': [2, 3, 4],
-                'more': {
-                    'thing': 'thang'
-                }
-            },
+            'this': {'another': [2, 3, 4], 'more': {'thing': 'thang'}},
             'that': 'another_thing',
-            'other': {
-                'another': [8, 9, 10],
-                'more': {
-                    'thing': 'thang',
-                    'thung': 'theng'
-                }
-            },
+            'other': {'another': [8, 9, 10], 'more': {'thing': 'thang', 'thung': 'theng'}},
             'another': 4,
             'more': 5
         }

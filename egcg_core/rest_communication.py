@@ -1,6 +1,5 @@
 import requests
 from urllib.parse import urljoin
-from base64 import b64encode
 from egcg_core.config import cfg
 from egcg_core.app_logging import AppLogger
 from egcg_core.exceptions import RestCommunicationError
