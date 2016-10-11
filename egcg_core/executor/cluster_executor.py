@@ -100,7 +100,7 @@ class SlurmExecutor(ClusterExecutor):
 
     def _sacct(self, output_format):
         s = self._get_stdout('sacct -n -j {j} -o {o}'.format(j=self.job_id, o=output_format))
-        return list(set(s.split('\n')))[0]
+        return list(set([t.strip() for t in s.split('\n')]))[0]
 
     def _squeue(self):
         s = self._get_stdout('squeue -j {j} -o %T'.format(j=self.job_id))
