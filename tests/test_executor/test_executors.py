@@ -1,21 +1,14 @@
 import os
 import pytest
 import shutil
-import logging
 import subprocess
 from unittest.mock import patch, Mock
 from tests import TestEGCG
 from egcg_core.executor import Executor, StreamExecutor, ArrayExecutor, PBSExecutor, SlurmExecutor
 from egcg_core.executor.cluster_executor import ClusterExecutor
 from egcg_core.exceptions import EGCGError
-from egcg_core.app_logging import LoggingConfiguration
-from egcg_core.config import cfg
+from egcg_core.app_logging import logging_default as log_cfg
 
-log_cfg = LoggingConfiguration(cfg)
-log_cfg.set_log_level(logging.DEBUG)
-log_cfg.add_stdout_handler(logging.DEBUG)
-
-get_writer = 'egcg_core.executor.cluster_executor.ClusterExecutor._get_writer'
 get_stdout = 'egcg_core.executor.cluster_executor.ClusterExecutor._get_stdout'
 sleep = 'egcg_core.executor.cluster_executor.sleep'
 
@@ -101,13 +94,12 @@ class TestClusterExecutor(TestEGCG):
         shutil.rmtree(os.path.join(self.assets_path, 'a_run_id'))
 
     def _set_executor(self, cmd):
-        with patch(get_writer, return_value=Mock(script_name='a_script_name')):
-            self.executor = ClusterExecutor(
-                cmd,
-                job_name='test_job',
-                working_dir=os.path.join(self.assets_path, 'a_run_id')
-            )
-            self.executor.log_cfg = log_cfg
+        self.executor = ClusterExecutor(
+            cmd,
+            job_name='test_job',
+            working_dir=os.path.join(self.assets_path, 'a_run_id')
+        )
+        self.executor.log_cfg = log_cfg
 
     def test_get_stdout(self):
         popen = 'egcg_core.executor.executor.subprocess.Popen'
@@ -116,13 +108,13 @@ class TestClusterExecutor(TestEGCG):
             p.assert_called_with(['ls', '-d', self.assets_path], stdout=-1, stderr=-1)
 
     def test_cmd(self):
-        assert self.executor.cmd == '/bin/sh a_script_name'
+        assert self.executor.submit_cmd == '/bin/sh ' + self.executor.writer.script_name
 
     @patch(get_stdout, return_value=None)
     def test_dodgy_cmd(self, mocked_get_stdout):
         with pytest.raises(EGCGError) as e:
             self._set_executor(os.path.join(self.assets_path, 'non_existent_script.sh'))
-            self.executor.cmd = '/bin/sh non_existent_script.sh'
+            self.executor.submit_cmd = '/bin/sh non_existent_script.sh'
             self.executor.start()
             assert str(e) == 'Job submission failed'
         mocked_get_stdout.assert_called_with('/bin/sh non_existent_script.sh')
@@ -138,13 +130,12 @@ class TestClusterExecutor(TestEGCG):
 
 class TestPBSExecutor(TestClusterExecutor):
     def _set_executor(self, cmd):
-        with patch(get_writer, return_value=Mock(script_name='a_script_name')):
-            self.executor = PBSExecutor(
-                cmd,
-                job_name='test_job',
-                working_dir=os.path.join(self.assets_path, 'a_run_id')
-            )
-            self.executor.log_cfg = log_cfg
+        self.executor = PBSExecutor(
+            cmd,
+            job_name='test_job',
+            working_dir=os.path.join(self.assets_path, 'a_run_id')
+        )
+        self.executor.log_cfg = log_cfg
 
     def test_qstat(self):
         with patch(get_stdout, return_value='this\nthat\nother') as p:
@@ -167,13 +158,12 @@ class TestPBSExecutor(TestClusterExecutor):
 
 class TestSlurmExecutor(TestClusterExecutor):
     def _set_executor(self, cmd):
-        with patch(get_writer, return_value=Mock(script_name='a_script_name')):
-            self.executor = SlurmExecutor(
-                cmd,
-                job_name='test_job',
-                working_dir=os.path.join(self.assets_path, 'a_run_id')
-            )
-            self.executor.log_cfg = log_cfg
+        self.executor = SlurmExecutor(
+            cmd,
+            job_name='test_job',
+            working_dir=os.path.join(self.assets_path, 'a_run_id')
+        )
+        self.executor.log_cfg = log_cfg
 
     def test_sacct(self):
         with patch(get_stdout, return_value='1:0') as p:

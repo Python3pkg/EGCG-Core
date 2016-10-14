@@ -6,22 +6,18 @@ class PBSWriter(ClusterWriter):
     suffix = '.pbs'
     array_index = 'PBS_ARRAY_INDEX'
 
-    def _write_header(self, cpus, mem, job_name, queue, walltime=None, jobs=1):
-        """Write a base PBS header. If multiple jobs, split them into a job array."""
-        self.write_lines(
-            '#!/bin/bash\n',
-            '#PBS -l ncpus=%s,mem=%sgb' % (cpus, mem),
-            '#PBS -q ' + queue,
-            '#PBS -j ' + 'oe',
-            '#PBS -o ' + self.log_file,
-            '#PBS -W block=true'
-        )
-        if walltime:
-            self.write_line('#PBS -l walltime=%s:00:00' % walltime)
-        if job_name:
-            self.write_line('#PBS -N ' + self._trim_field(job_name, 15))
-        if jobs > 1:
-            # specify a job array
-            self.write_line('#PBS -J 1-' + str(jobs))
-        self.write_line('cd ' + self.working_dir)
-        self._line_break()
+    header = (
+        '#!/bin/bash\n',
+        '#PBS -N {job_name}',
+        '#PBS -l ncpus={cpus},mem={mem}gb',
+        '#PBS -q {queue}',
+        '#PBS -j oe',
+        '#PBS -o {log_file}'
+    )
+    walltime_header = '#PBS -l walltime={walltime}:00:00'
+    array_header = '#PBS -J 1-{jobs}'
+
+    def __init__(self, job_name, working_dir, job_queue, log_commands=True, **cluster_config):
+        super().__init__(job_name, working_dir, job_queue, log_commands, **cluster_config)
+        if len(self.job_name) > 15:
+            self.job_name = self.job_name[:15]  # job names longer than 15 chars break PBS

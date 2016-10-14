@@ -1,5 +1,6 @@
 from os.path import join
 from egcg_core.app_logging import AppLogger
+from egcg_core.exceptions import EGCGError
 
 
 class ScriptWriter(AppLogger):
@@ -9,12 +10,13 @@ class ScriptWriter(AppLogger):
     self.save.
     """
     suffix = '.sh'
+    array_index = 'JOB_INDEX'
 
-    def __init__(self, job_name, working_dir, job_queue, jobs=1, log_commands=True):
+    def __init__(self, job_name, working_dir, job_queue, log_commands=True):
         """
         :param str job_name: Desired full path to the pbs script to write
-        :param int jobs: A number of jobs to submit in an array
         """
+        self.job_name = job_name
         self.script_name = join(working_dir, job_name + self.suffix)
         self.log_commands = log_commands
         self.working_dir = working_dir
@@ -23,91 +25,96 @@ class ScriptWriter(AppLogger):
         self.info('Writing: ' + self.script_name)
         self.info('Log file: ' + self.log_file)
         self.lines = []
-        self.job_total = jobs
-        self.jobs_written = 0
+        self.array_jobs_written = 0
 
-    def write_line(self, line):
-        self.lines.append(line)
+    def register_cmd(self, cmd, log_file=None):
+        if log_file:
+            cmd += ' > %s 2>&1' % log_file
+        self.add_line(cmd)
 
-    def write_lines(self, *lines):
-        self.lines.extend(list(lines))
+    def register_cmds(self, *cmds, parallel=False):
+        if parallel:
+            self.add_job_array(*cmds)
+        else:
+            self.lines.extend(list(cmds))
 
-    def write_jobs(self, cmds, prelim_cmds=None):
-        if prelim_cmds:
-            for cmd in prelim_cmds:
-                self.write_line(cmd)
-            self._line_break()
+    def add_job_array(self, *cmds):
+        if self.array_jobs_written != 0:
+            raise EGCGError('Already written a job array - can only have one per script')
 
         if len(cmds) == 1:
-            self.write_line(cmds[0])
+            self.register_cmd(cmds[0])
         else:
             self._start_array()
             for idx, cmd in enumerate(cmds):
-                if self.log_commands:
-                    self._write_array_cmd(idx + 1, cmd, log_file=self.log_file + str(idx + 1))
-                else:
-                    self._write_array_cmd(idx + 1, cmd)
+                self._register_array_cmd(
+                    idx + 1,
+                    cmd,
+                    log_file=self.log_file + str(idx + 1) if self.log_commands else None
+                )
             self._finish_array()
-        self._save()
 
-    def _write_array_cmd(self, job_number, cmd, log_file=None):
+        self.array_jobs_written += len(cmds)
+
+    def _register_array_cmd(self, idx, cmd, log_file=None):
         """
-        :param int job_number: The index of the job (i.e. which number the job has in the array)
+        :param int idx: The index of the job, i.e. which number the job has in the array
         :param str cmd: The command to write
         """
-        line = str(job_number) + ') ' + cmd
+        line = str(idx) + ') ' + cmd
         if log_file:
             line += ' > ' + log_file + ' 2>&1'
         line += '\n' + ';;'
-        self.write_line(line)
-        self.jobs_written += 1
+        self.add_line(line)
+
+    def add_line(self, line):
+        self.lines.append(line)
 
     def _start_array(self):
-        self.write_line('case $JOB_INDEX in')
+        self.add_line('case $%s in' % self.array_index)
 
     def _finish_array(self):
-        self.write_line('*) echo "Unexpected JOB_INDEX: $JOB_INDEX"')
-        self.write_line('esac')
+        self.add_line('*) echo "Unexpected %s: $%s"' % (self.array_index, self.array_index))
+        self.add_line('esac')
 
-    def _line_break(self):
+    def line_break(self):
         self.lines.append('')
 
-    def _save(self):
-        """Save self.lines to self.script_file. Also closes it. Always close the file."""
-        if self.job_total > 1 and self.job_total != self.jobs_written:
-            raise ValueError('Bad number of array jobs: %s written, %s expected' % (self.jobs_written, self.job_total))
-        script_file = open(self.script_name, 'w')
-
-        for line in self.lines:
-            script_file.write(line + '\n')
-        script_file.close()
-        self.debug('Closed ' + self.script_name)
-
-    @staticmethod
-    def _trim_field(field, max_length):
-        """
-        Required for, e.g, name fields which break PBS if longer than 15 chars
-        :return: field, trimmed to max_length
-        """
-        if len(field) > max_length:
-            return field[0:max_length]
-        else:
-            return field
+    def save(self):
+        """Save self.lines to self.script_name."""
+        with open(self.script_name, 'w') as f:
+            f.write('\n'.join(self.lines) + '\n')
 
 
 class ClusterWriter(ScriptWriter):
-    array_index = None
+    header = (
+        '#!/bin/bash\n',
+        '# job name: {job_name}',
+        '# cpus: {cpus}',
+        '# mem: {mem}gb',
+        '# queue: {queue}',
+        '# log file: {log_file}'
+    )
+    walltime_header = '# walltime: {walltime}'
+    array_header = '# job array: 1-{jobs}'
 
-    def __init__(self, job_name, working_dir, job_queue, cpus, mem, walltime, jobs, log_commands):
-        super().__init__(job_name, working_dir, job_queue, jobs, log_commands)
-        self._write_header(cpus, mem, job_name, self.queue, walltime, jobs)
+    def __init__(self, job_name, working_dir, job_queue, log_commands=True, **cluster_config):
+        super().__init__(job_name, working_dir, job_queue, log_commands)
+        self.cluster_config = cluster_config
 
-    def _write_header(self, cpus, mem, job_name, queue, walltime=None, jobs=1):
-        raise NotImplementedError
+    def add_header(self):
+        """Write a header for a given resource manager. If multiple jobs, split them into a job array."""
+        fmt = {'job_name': self.job_name, 'cpus': self.cluster_config['cpus'],
+               'mem': self.cluster_config['mem'], 'queue': self.queue, 'log_file': self.log_file,
+               'walltime': self.cluster_config.get('walltime'), 'jobs': str(self.array_jobs_written)}
 
-    def _start_array(self):
-        self.write_line('case $%s in\n' % self.array_index)
+        header_lines = list(self.header)
 
-    def _finish_array(self):
-        self.write_line('*) echo "Unexpected %s: $%s"' % (self.array_index, self.array_index))
-        self.write_line('esac')
+        if 'walltime' in self.cluster_config:
+            header_lines.append(self.walltime_header)
+
+        if self.array_jobs_written > 1:
+            header_lines.append(self.array_header)
+
+        header_lines.extend(['', 'cd ' + self.working_dir, ''])
+        self.lines = [l.format(**fmt) for l in header_lines] + self.lines  # prepend the formatted header
