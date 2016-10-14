@@ -6,10 +6,11 @@ from .exceptions import ConfigError
 
 class Configuration:
     config_file = None
-    content = None
+    content = {}
 
     def __init__(self, *search_path):
-        self.load_config_file(self._find_config_file(search_path))
+        if search_path:
+            self.load_config_file(self._find_config_file(search_path))
 
     @staticmethod
     def _find_config_file(search_path):
@@ -22,7 +23,7 @@ class Configuration:
         if self.config_file:
             self.content = yaml.safe_load(open(self.config_file, 'r'))
         else:
-            self.content = None
+            raise ConfigError('Could not find any config file in specified search path')
 
     def get(self, item, ret_default=None):
         """
@@ -79,7 +80,7 @@ class EnvConfiguration(Configuration):
         self._select_env()
 
     def _select_env(self):
-        if self.content and not self.content.get('default'):
+        if not self.content.get('default'):
             raise ConfigError("Could not find 'default' environment in " + self.config_file)
         elif self.content:
             env = getenv(self.env_var, 'default')

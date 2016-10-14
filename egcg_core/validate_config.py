@@ -1,6 +1,5 @@
 import re
 import sys
-from os import environ
 from os.path import abspath, dirname, basename
 
 table = str.maketrans('', '', '\'" []')
@@ -85,11 +84,14 @@ def validate_main_config(cfg, file):
 
 
 def main():
-    environ['EGCGCONFIG'] = sys.argv[1]
-
     sys.path.append(dirname(dirname(abspath(__file__))))
-    from egcg_core import config
-    validate_main_config(config.cfg, sys.argv[2])
+    from egcg_core.config import cfg
+
+    config_file = sys.argv[1]
+    source_code = sys.argv[2]
+
+    cfg.load_config_file(config_file)
+    validate_main_config(cfg, source_code)
 
 
 if __name__ == '__main__':
