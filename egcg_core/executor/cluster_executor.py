@@ -81,15 +81,22 @@ class PBSExecutor(ClusterExecutor):
     script_writer = script_writers.PBSWriter
 
     def _qstat(self):
-        h1, h2, data = self._get_stdout('qstat -x {j}'.format(j=self.job_id)).split('\n')
-        return data.split()
+        data = self._get_stdout('qstat -xt {j}'.format(j=self.job_id)).split('\n')
+        return [d for d in data[2:] if d]
 
     def _job_statuses(self):
-        job_id, job_name, user, time, status, queue = self._qstat()
-        return status
+        statuses = set()
+        reports = self._qstat()
+        for r in reports:
+            job_id, job_name, user, time, status, queue = r.split()
+            statuses.add(status)
+        return statuses
 
     def _job_exit_code(self):
-        return self.finished_statuses.index(self._job_status())
+        exit_status = 0
+        for s in self._job_statuses():
+            exit_status += self.finished_statuses.index(s)
+        return exit_status
 
 
 class SlurmExecutor(ClusterExecutor):
@@ -103,7 +110,7 @@ class SlurmExecutor(ClusterExecutor):
 
     def _sacct(self, output_format):
         s = self._get_stdout('sacct -nX -j {j} -o {o}'.format(j=self.job_id, o=output_format))
-        return list(set([t.strip() for t in s.split('\n')]))
+        return set([t.strip() for t in s.split('\n')])
 
     def _squeue(self):
         s = self._get_stdout('squeue -h -j {j} -o %T'.format(j=self.job_id))

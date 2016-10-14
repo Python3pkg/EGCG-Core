@@ -48,10 +48,9 @@ class FakeProcess:
     def outputs_per_input(artifact_id, **kwargs):
         return [Mock(container=artifact_id)]
 
+
 class FakeProcess2(FakeProcess):
     date_run = 'a_older_date_run'
-
-
 
 
 fake_samples = [

@@ -114,7 +114,6 @@ class TestPBSWriter(TestScriptWriter):
             '#PBS -q a_job_queue',
             '#PBS -j oe',
             '#PBS -o ' + join(self.working_dir, 'a_job_name.log'),
-            '#PBS -W block=true',
             '#PBS -l walltime=3:00:00',
             '#PBS -N a_job_name',
             'cd ' + self.script_writer.working_dir,
@@ -141,7 +140,6 @@ class TestPBSWriter(TestScriptWriter):
             '#PBS -q a_job_queue',
             '#PBS -j oe',
             '#PBS -o ' + join(self.working_dir, 'a_job_name.log'),
-            '#PBS -W block=true',
             '#PBS -N a_job_name',
             'cd ' + self.script_writer.working_dir,
             ''

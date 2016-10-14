@@ -13,8 +13,7 @@ class PBSWriter(ClusterWriter):
             '#PBS -l ncpus=%s,mem=%sgb' % (cpus, mem),
             '#PBS -q ' + queue,
             '#PBS -j ' + 'oe',
-            '#PBS -o ' + self.log_file,
-            '#PBS -W block=true'
+            '#PBS -o ' + self.log_file
         )
         if walltime:
             self.write_line('#PBS -l walltime=%s:00:00' % walltime)
