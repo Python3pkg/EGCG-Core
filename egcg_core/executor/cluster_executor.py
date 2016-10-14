@@ -7,7 +7,7 @@ from . import script_writers
 
 
 class ClusterExecutor(AppLogger):
-    script_writer = None
+    script_writer = script_writers.ClusterWriter
     finished_statuses = None
     unfinished_statuses = None
 
@@ -16,30 +16,41 @@ class ClusterExecutor(AppLogger):
         :param list cmds: Full path to a job submission script
         """
         self.job_queue = cfg['executor']['job_queue']
+        self.interval = cfg.query('executor', 'join_interval', ret_default=30)
+        self.writer = self._get_writer(**cluster_config)
         self.job_id = None
-        w = self._get_writer(jobs=len(cmds), **cluster_config)
-        if cfg.query('executor', 'pre_job_source'):
-            if not prelim_cmds:
-                prelim_cmds = []
-            else:
-                prelim_cmds = list(prelim_cmds)
-            prelim_cmds.append('source ' + cfg['executor']['pre_job_source'])
-        w.write_jobs(cmds, prelim_cmds)
-        qsub = cfg.query('executor', 'qsub', ret_default='qsub')
-        self.cmd = qsub + ' ' + w.script_name
+        self.cmds = cmds
+        self.prelim_cmds = prelim_cmds
+        self.submit_cmd = cfg['executor']['qsub'] + ' ' + self.writer.script_name
+
+    def write_script(self):
+        if self.prelim_cmds:
+            self.writer.register_cmds(*self.prelim_cmds)
+
+        pre_job_source = cfg.query('executor', 'pre_job_source')
+        if pre_job_source:
+            self.writer.register_cmd('source ' + pre_job_source)
+
+        self.writer.line_break()
+        self.writer.register_cmds(*self.cmds)
+        self.writer.add_header()
+        self.writer.save()
 
     def start(self):
+        """Write the jobs into a script, submit it and capture qsub's output as self.job_id."""
+        self.write_script()
         self.job_id = self._submit_job()
-        self.info('Submitted "%s" as job %s' % (self.cmd, self.job_id))
+        self.info('Submitted "%s" as job %s' % (self.submit_cmd, self.job_id))
 
     def join(self):
+        """Wait until the job has finished, then return its exit status."""
         sleep(10)
         while not self._job_finished():
-            sleep(30)
+            sleep(self.interval)
         return self._job_exit_code()
 
-    def _get_writer(self, job_name, working_dir, walltime=None, cpus=1, mem=2, jobs=1, log_commands=True):
-        return self.script_writer(job_name, working_dir, self.job_queue, cpus, mem, walltime, jobs, log_commands)
+    def _get_writer(self, job_name, working_dir, walltime=None, cpus=1, mem=2, log_commands=True):
+        return self.script_writer(job_name, working_dir, self.job_queue, log_commands=log_commands, cpus=cpus, mem=mem, walltime=walltime)
 
     def _job_statuses(self):
         raise NotImplementedError
@@ -48,9 +59,9 @@ class ClusterExecutor(AppLogger):
         raise NotImplementedError
 
     def _submit_job(self):
-        p = self._get_stdout(self.cmd)
+        p = self._get_stdout(self.submit_cmd)
         if p is None:
-            raise EGCGError('Job submissions failed')
+            raise EGCGError('Job submission failed')
         return p
 
     def _job_finished(self):

@@ -60,6 +60,9 @@ class Communicator(AppLogger):
             kwargs.update(headers={'Authorization': 'Token ' + self.auth})
 
         r = requests.request(method, url, **kwargs)
+
+        kwargs.pop('auth', None)
+        kwargs.pop('headers', None)
         # e.g: 'POST <url> ({"some": "args"}) -> {"some": "content"}. Status code 201. Reason: CREATED
         report = '%s %s (%s) -> %s. Status code %s. Reason: %s' % (
             r.request.method, r.request.path_url, kwargs, r.content.decode('utf-8'), r.status_code, r.reason

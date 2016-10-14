@@ -271,4 +271,3 @@ def test_get_sample_release_date(mocked_get_procs, mocked_get_sample):
     mocked_get_sample.reset_mock()
 
     assert clarity.get_sample_release_date('a_sample_name2') == 'a_older_date_run'
-

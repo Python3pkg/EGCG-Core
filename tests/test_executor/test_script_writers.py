@@ -4,198 +4,136 @@ import shutil
 from egcg_core.executor import script_writers
 from tests import TestEGCG
 
+working_dir = join(TestEGCG.assets_path, 'test_script_writer_wd')
+
 
 class TestScriptWriter(TestEGCG):
-    array_index = 'JOB_INDEX'
-    exp_header = []
-
     def setUp(self):
-        self.working_dir = join(self.assets_path, 'test_script_writer_wd')
-        makedirs(self.working_dir, exist_ok=True)
-        self.script_writer = script_writers.ScriptWriter('a_job_name', self.working_dir, 'a_job_queue')
+        makedirs(working_dir, exist_ok=True)
+        self.script_writer = script_writers.ScriptWriter('a_job_name', working_dir, 'a_job_queue')
+        assert self.script_writer.lines == []
 
     def tearDown(self):
-        shutil.rmtree(self.working_dir)
+        shutil.rmtree(working_dir)
 
-    def _compare_writer_lines(self, expected):
-        self.compare_lists(
-            [l.rstrip('\n') for l in self.script_writer.lines],
-            [l.rstrip('\n') for l in self.exp_header + expected]
-        )
+    def test_init(self):
+        w = self.script_writer
+        assert w.job_name == 'a_job_name'
+        assert w.script_name == join(working_dir, 'a_job_name.sh')
+        assert w.log_commands is True
+        assert w.log_file == join(working_dir, 'a_job_name.log')
+        assert w.queue == 'a_job_queue'
 
-    def test_write_line(self):
-        self.script_writer.write_line('a_line')
-        self._compare_writer_lines(['a_line'])
+    def test_register_cmd(self):
+        self.script_writer.register_cmd('a_cmd', log_file='a_log_file')
+        assert self.script_writer.lines == ['a_cmd > a_log_file 2>&1']
 
-    def test_write_job(self):
-        self.script_writer.write_jobs(['a_cmd'])
-        self._compare_writer_lines(['a_cmd'])
+    def test_register_cmds(self):
+        self.script_writer.register_cmds('this', 'that')
+        assert self.script_writer.lines == ['this', 'that']
 
-    def test_write_job_prelim_cmds(self):
-        self.script_writer.write_jobs(['a_cmd'], prelim_cmds=['a_prelim_cmd'])
-        self._compare_writer_lines(['a_prelim_cmd', '', 'a_cmd'])
-
-    def test_start_array(self):
-        self.script_writer._start_array()
-        self._compare_writer_lines(['case ${array_index} in'.format(array_index=self.array_index)])
-
-    def test_finish_array(self):
-        self.script_writer._finish_array()
-        self._compare_writer_lines(
-            [
-                '*) echo "Unexpected {array_index}: ${array_index}"'.format(array_index=self.array_index),
-                'esac'
-            ]
-        )
-
-    def test_write_array_cmd(self):
-        self.script_writer._write_array_cmd(1337, 'an_array_cmd')
-        self.script_writer._write_array_cmd(
-            1338, 'another_array_cmd', log_file=join(self.assets_path, 'a_log_file')
-        )
-        self._compare_writer_lines(
-            [
-                '1337) an_array_cmd\n' + ';;',
-                '1338) another_array_cmd > ' + join(self.assets_path, 'a_log_file') + ' 2>&1''\n;;'
-            ]
-        )
-
-    def test_write_job_array(self):
-        self.script_writer.write_jobs(['a_cmd', 'another_cmd'])
-        expected = [
-            'case ${array_index} in'.format(array_index=self.array_index),
-            '1) a_cmd > ' + self.script_writer.log_file + '1 2>&1' + '\n' + ';;',
-            '2) another_cmd > ' + self.script_writer.log_file + '2 2>&1' + '\n' + ';;',
-            '*) echo "Unexpected {array_index}: ${array_index}"'.format(array_index=self.array_index),
+    def test_add_job_array(self):
+        self.script_writer.add_job_array('this', 'that', 'other')
+        assert self.script_writer.lines == [
+            'case $JOB_INDEX in',
+            '1) this > ' + join(working_dir, 'a_job_name.log1') + ' 2>&1\n;;',
+            '2) that > ' + join(working_dir, 'a_job_name.log2') + ' 2>&1\n;;',
+            '3) other > ' + join(working_dir, 'a_job_name.log3') + ' 2>&1\n;;',
+            '*) echo "Unexpected JOB_INDEX: $JOB_INDEX"',
             'esac'
         ]
-        self._compare_writer_lines(expected)
-
-    def test_write_job_array_prelim_cmds(self):
-        self.script_writer.write_jobs(['a_cmd', 'another_cmd'], prelim_cmds=['a_prelim_cmd'])
-        expected = [
-            'a_prelim_cmd',
-            '',
-            'case ${array_index} in'.format(array_index=self.array_index),
-            '1) a_cmd > ' + self.script_writer.log_file + '1 2>&1' + '\n' + ';;',
-            '2) another_cmd > ' + self.script_writer.log_file + '2 2>&1' + '\n' + ';;',
-            '*) echo "Unexpected {array_index}: ${array_index}"'.format(array_index=self.array_index),
-            'esac'
-        ]
-        self._compare_writer_lines(expected)
 
     def test_save(self):
-        self.script_writer.write_line('a_line')
-        self.script_writer._save()
+        self.script_writer.add_line('a_line')
+        self.script_writer.save()
         assert 'a_line\n' in open(self.script_writer.script_name, 'r').readlines()
 
     def test_trim_field(self):
-        assert self.script_writer._trim_field('a_field_name_too_long_for_pbs', 15) == 'a_field_name_to'
+        s = script_writers.PBSWriter('a_job_name_too_long_for_pbs', 'a_working_dir', 'a_job_queue')
+        assert s.job_name == 'a_job_name_too_'
+
+
+class TestClusterWriter(TestScriptWriter):
+    writer_cls = script_writers.ClusterWriter
+    array_index = 'JOB_INDEX'
+    exp_cmds = [
+        '',
+        'some',
+        'preliminary',
+        'cmds',
+        'case $%s in' % array_index,
+        '1) this\n;;',
+        '2) that\n;;',
+        '3) other\n;;',
+        '*) echo "Unexpected %s: $%s"' % (array_index, array_index),
+        'esac'
+    ]
+    exp_header = [
+        '#!/bin/bash\n',
+        '# job name: a_job_name',
+        '# cpus: 1',
+        '# mem: 2gb',
+        '# queue: a_job_queue',
+        '# log file: ' + join(working_dir, 'a_job_name.log'),
+        '# walltime: 3',
+        '# job array: 1-3',
+        '',
+        'cd ' + working_dir
+    ]
+
+    def setUp(self):
+        super().setUp()
+        self.script_writer = self.writer_cls(
+            'a_job_name',
+            working_dir,
+            'a_job_queue',
+            cpus=1,
+            mem=2,
+            queue='a_queue',
+            walltime='3'
+        )
+        assert self.script_writer.lines == []
+
+    def test(self):
+        self.script_writer.log_commands = False
+        self.script_writer.register_cmds('some', 'preliminary', 'cmds')
+        self.script_writer.register_cmds('this', 'that', 'other', parallel=True)
+        self.script_writer.add_header()
+
+        obs = self.script_writer.lines
+        exp = self.exp_header + self.exp_cmds
+        assert obs == exp
 
 
 class TestPBSWriter(TestScriptWriter):
+    writer_cls = script_writers.PBSWriter
     array_index = 'PBS_ARRAY_INDEX'
-
-    def setUp(self):
-        super().setUp()
-        self.script_writer = script_writers.PBSWriter(
-            'a_job_name',
-            self.working_dir,
-            'a_job_queue',
-            walltime=3,
-            cpus=2,
-            mem=1,
-            jobs=1,
-            log_commands=True
-        )
-        self.exp_header = [
-            '#!/bin/bash\n',
-            '#PBS -l ncpus=2,mem=1gb',
-            '#PBS -q a_job_queue',
-            '#PBS -j oe',
-            '#PBS -o ' + join(self.working_dir, 'a_job_name.log'),
-            '#PBS -l walltime=3:00:00',
-            '#PBS -N a_job_name',
-            'cd ' + self.script_writer.working_dir,
-            ''
-        ]
-
-    def test_write_header(self):
-        self.compare_lists(self.script_writer.lines, self.exp_header)
-
-    def test_write_header_no_walltime(self):
-        script_writer = script_writers.PBSWriter(
-            'a_job_name',
-            self.working_dir,
-            'a_job_queue',
-            walltime=None,
-            cpus=2,
-            mem=1,
-            jobs=1,
-            log_commands=True
-        )
-        exp_header = [
-            '#!/bin/bash\n',
-            '#PBS -l ncpus=2,mem=1gb',
-            '#PBS -q a_job_queue',
-            '#PBS -j oe',
-            '#PBS -o ' + join(self.working_dir, 'a_job_name.log'),
-            '#PBS -N a_job_name',
-            'cd ' + self.script_writer.working_dir,
-            ''
-        ]
-        self.compare_lists(script_writer.lines, exp_header)
+    exp_header = [
+        '#!/bin/bash\n',
+        '#PBS -N a_job_name',
+        '#PBS -l ncpus=1,mem=2gb',
+        '#PBS -q a_job_queue',
+        '#PBS -j oe',
+        '#PBS -o ' + join(working_dir, 'a_job_name.log'),
+        '#PBS -l walltime=3',
+        '#PBS -J 1-3',
+        '',
+        'cd ' + working_dir
+    ]
 
 
 class TestSlurmWriter(TestScriptWriter):
+    writer_cls = script_writers.SlurmWriter
     array_index = 'SLURM_ARRAY_TASK_ID'
-
-    def setUp(self):
-        super().setUp()
-        self.script_writer = script_writers.SlurmWriter(
-            'a_job_name',
-            self.working_dir,
-            'a_job_queue',
-            walltime=3,
-            cpus=2,
-            mem=1,
-            jobs=1,
-            log_commands=True
-        )
-        self.exp_header = [
-            '#!/bin/bash\n',
-            '#SBATCH --mem=1g',
-            '#SBATCH --cpus-per-task=2',
-            '#SBATCH --partition=a_job_queue',
-            '#SBATCH --output=' + join(self.working_dir, 'a_job_name.log'),
-            '#SBATCH --time=3:00:00',
-            '#SBATCH --job-name="a_job_name"',
-            'cd ' + self.script_writer.working_dir,
-            ''
-        ]
-
-    def test_write_header(self):
-        self.compare_lists(self.script_writer.lines, self.exp_header)
-
-    def test_write_header_no_walltime(self):
-        script_writer = script_writers.SlurmWriter(
-            'a_job_name',
-            self.working_dir,
-            'a_job_queue',
-            walltime=None,
-            cpus=2,
-            mem=1,
-            jobs=1,
-            log_commands=True
-        )
-        exp_header = [
-            '#!/bin/bash\n',
-            '#SBATCH --mem=1g',
-            '#SBATCH --cpus-per-task=2',
-            '#SBATCH --partition=a_job_queue',
-            '#SBATCH --output=' + join(self.working_dir, 'a_job_name.log'),
-            '#SBATCH --job-name="a_job_name"',
-            'cd ' + self.script_writer.working_dir,
-            ''
-        ]
-        self.compare_lists(script_writer.lines, exp_header)
+    exp_header = [
+        '#!/bin/bash\n',
+        '#SBATCH --job-name=a_job_name',
+        '#SBATCH --cpus-PER-TASK=1',
+        '#SBATCH --mem=2gb',
+        '#SBATCH --partition=a_job_queue',
+        '#SBATCH --output=' + join(working_dir, 'a_job_name.log'),
+        '#SBATCH --time=3:00:00',
+        '#SBATCH --array=1-3',
+        '',
+        'cd ' + working_dir
+    ]

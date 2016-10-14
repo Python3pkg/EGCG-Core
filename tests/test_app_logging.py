@@ -77,11 +77,11 @@ class TestLoggingConfiguration(TestEGCG):
 class TestAppLogger(app_logging.AppLogger, TestEGCG):
     def setUp(self):
         self.log_cfg = app_logging.logging_default
-        self.log_cfg.add_handler(logging.StreamHandler(stream=sys.stdout))
-        self.log_cfg.add_handler(logging.StreamHandler(stream=sys.stderr))
+        app_logging.logging_default.add_stdout_handler(logging.DEBUG)
 
     def tearDown(self):
         app_logging.logging_default.handlers.clear()
+        app_logging.logging_default.add_stdout_handler(logging.DEBUG)
 
     def test_log_msgs(self):
         self.debug('Debug')
