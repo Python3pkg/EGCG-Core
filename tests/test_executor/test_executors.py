@@ -155,7 +155,7 @@ class TestPBSExecutor(TestClusterExecutor):
         qstat = 'egcg_core.executor.cluster_executor.PBSExecutor._qstat'
         fake_report = ('1337', 'a_job', 'a_user', '10:00:00', 'R',  'q')
         with patch(qstat, return_value=fake_report):
-            assert self.executor._job_status() == 'R'
+            assert self.executor._job_statuses() == 'R'
 
     def test_job_finished(self):
         job_status = 'egcg_core.executor.cluster_executor.PBSExecutor._qstat'
@@ -176,21 +176,26 @@ class TestSlurmExecutor(TestClusterExecutor):
             self.executor.log_cfg = log_cfg
 
     def test_sacct(self):
-        with patch(get_stdout, return_value='1:0') as p:
-            assert self.executor._sacct('ExitCode') == '1:0'
-            p.assert_called_with('sacct -n -j None -o ExitCode')
+        with patch(get_stdout, return_value=' COMPLETED  0:0 \n COMPLETED  0:0') as p:
+            assert self.executor._sacct('State,ExitCode') == ['COMPLETED  0:0']
+            p.assert_called_with('sacct -nX -j None -o State,ExitCode')
+
+    def test_squeue(self):
+        with patch(get_stdout, return_value='RUNNING\nRUNNING\nRUNNING') as p:
+            assert self.executor._squeue() == ['RUNNING']
+            p.assert_called_with('squeue -h -j None -o %T')
 
     def test_job_finished(self):
         sacct = 'egcg_core.executor.cluster_executor.SlurmExecutor._sacct'
         patched_squeue = patch('egcg_core.executor.cluster_executor.SlurmExecutor._squeue', return_value='')
-        with patch(sacct, return_value='RUNNING'), patched_squeue:
+        with patch(sacct, return_value=['RUNNING']), patched_squeue:
             assert not self.executor._job_finished()
-        with patch(sacct, return_value='COMPLETED'), patched_squeue:
+        with patch(sacct, return_value=['COMPLETED']), patched_squeue:
             assert self.executor._job_finished()
 
     def test_job_exit_code(self):
         sacct = 'egcg_core.executor.cluster_executor.SlurmExecutor._sacct'
-        with patch(sacct, return_value='CANCELLED 0:0'):
+        with patch(sacct, return_value=['CANCELLED 0:0']):
             assert self.executor._job_exit_code() == 9
-        with patch(sacct, return_value='COMPLETED 0:x'):
+        with patch(sacct, return_value=['COMPLETED 0:x']):
             assert self.executor._job_exit_code() == 0

@@ -41,7 +41,7 @@ class ClusterExecutor(AppLogger):
     def _get_writer(self, job_name, working_dir, walltime=None, cpus=1, mem=2, jobs=1, log_commands=True):
         return self.script_writer(job_name, working_dir, self.job_queue, cpus, mem, walltime, jobs, log_commands)
 
-    def _job_status(self):
+    def _job_statuses(self):
         raise NotImplementedError
 
     def _job_exit_code(self):
@@ -54,12 +54,15 @@ class ClusterExecutor(AppLogger):
         return p
 
     def _job_finished(self):
-        status = self._job_status()
-        if status in self.unfinished_statuses:
-            return False
-        elif status in self.finished_statuses:
-            return True
-        self.debug('Bad job status: %s', status)
+        statuses = self._job_statuses()
+        for s in statuses:
+            if s in self.finished_statuses:
+                pass
+            elif s in self.unfinished_statuses:
+                return False
+            else:
+                raise EGCGError('Bad job status: %s', s)
+        return True
 
     def _get_stdout(self, cmd):
         p = subprocess.Popen(cmd.split(' '), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -81,7 +84,7 @@ class PBSExecutor(ClusterExecutor):
         h1, h2, data = self._get_stdout('qstat -x {j}'.format(j=self.job_id)).split('\n')
         return data.split()
 
-    def _job_status(self):
+    def _job_statuses(self):
         job_id, job_name, user, time, status, queue = self._qstat()
         return status
 
@@ -91,7 +94,7 @@ class PBSExecutor(ClusterExecutor):
 
 class SlurmExecutor(ClusterExecutor):
     unfinished_statuses = ('RUNNING', 'RESIZING', 'SUSPENDED', 'PENDING')
-    finished_statuses = ('COMPLETED', 'CANCELLED', 'FAILED', 'TIMEOUT', 'NODE_FAIL')
+    finished_statuses = ('COMPLETED', 'CANCELLED', 'CANCELLED+', 'FAILED', 'TIMEOUT', 'NODE_FAIL')
     script_writer = script_writers.SlurmWriter
 
     def _submit_job(self):
@@ -99,23 +102,28 @@ class SlurmExecutor(ClusterExecutor):
         return super()._submit_job().split()[-1].strip()
 
     def _sacct(self, output_format):
-        s = self._get_stdout('sacct -n -j {j} -o {o}'.format(j=self.job_id, o=output_format))
-        return list(set([t.strip() for t in s.split('\n')]))[0]
+        s = self._get_stdout('sacct -nX -j {j} -o {o}'.format(j=self.job_id, o=output_format))
+        return list(set([t.strip() for t in s.split('\n')]))
 
     def _squeue(self):
-        s = self._get_stdout('squeue -j {j} -o %T'.format(j=self.job_id))
-        if not s or len(s.split('\n')) < 2:
-            return None
-        return sorted(set(s.split('\n')[1:]))
+        s = self._get_stdout('squeue -h -j {j} -o %T'.format(j=self.job_id))
+        if s:
+            return sorted(set(s.split('\n')))
 
-    def _job_status(self):
-        state = self._squeue()
-        if not state:
-            state = self._sacct('State')
-        return state
+    def _job_statuses(self):
+        s = self._squeue()
+        if s:  # job is still running, so use output from squeue
+            return s
+        return self._sacct('State')  # job no longer in squeue, so use sacct
 
     def _job_exit_code(self):
-        state, exit_code = self._sacct('State,ExitCode').split()
-        if state == 'CANCELLED':  # cancelled jobs can still be exit status 0
-            return 9
-        return int(exit_code.split(':')[0])
+        exit_status = 0
+        states = self._sacct('State,ExitCode')
+        for s in states:
+            state, exit_code = s.split()
+            exit_code = int(exit_code.split(':')[0])
+            if 'CANCELLED' in state and not exit_code:  # cancelled jobs can still be exit status 0
+                self.debug('Found a cancelled job - using exit status 9')
+                exit_code = 9
+            exit_status += exit_code
+        return exit_status
