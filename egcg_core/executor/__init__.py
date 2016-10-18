@@ -34,12 +34,15 @@ def cluster_execute(*cmds, env=None, prelim_cmds=None, **cluster_config):
     :param cluster_config:
     :return: ClusterExecutor
     """
+    if env is None:
+        env = cfg.query('executor', 'job_execution')
+
     if env == 'pbs':
         cls = PBSExecutor
     elif env == 'slurm':
         cls = SlurmExecutor
     else:
-        raise EGCGError('Unknown execution environment: ' + env)
+        raise EGCGError('Unknown execution environment: %s' % env)
 
     e = cls(*cmds, prelim_cmds=prelim_cmds, **cluster_config)
     e.start()
