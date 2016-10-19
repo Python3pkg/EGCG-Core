@@ -114,7 +114,7 @@ class SlurmExecutor(ClusterExecutor):
     script_writer = script_writers.SlurmWriter
     unfinished_statuses = ('CONFIGURING', 'COMPLETING', 'PENDING', 'RUNNING', 'RESIZING', 'SUSPENDED',)
     finished_statuses = ('BOOT_FAIL', 'CANCELLED', 'COMPLETED', 'DEADLINE', 'FAILED', 'NODE_FAIL',
-                         'PREEMPTED', 'TIMEOUT', 'NODE_FAIL')
+                         'PREEMPTED', 'TIMEOUT')
 
     def _submit_job(self):
         # sbatch stdout: "Submitted batch job {job_id}"
