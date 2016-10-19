@@ -138,21 +138,28 @@ class TestPBSExecutor(TestClusterExecutor):
         self.executor.log_cfg = log_cfg
 
     def test_qstat(self):
-        with patch(get_stdout, return_value='this\nthat\nother') as p:
-            assert self.executor._qstat() == 'other'.split()
-            p.assert_called_with('qstat -x None')
+        fake_report = ('Job id            Name             User              Time Use S Queue\n'
+                       '----------------  ---------------- ----------------  -------- - -------\n'
+                       '1337[].server     a_job_name       a_user            0        B a_queue\n'
+                       '1338.server       another_job_name another_user      00:00:00 R a_queue\n')
+        with patch(get_stdout, return_value=fake_report) as p:
+            assert self.executor._qstat() == [
+                '1337[].server     a_job_name       a_user            0        B a_queue',
+                '1338.server       another_job_name another_user      00:00:00 R a_queue'
+            ]
+            p.assert_called_with('qstat -xt None')
 
     def test_job_status(self):
         qstat = 'egcg_core.executor.cluster_executor.PBSExecutor._qstat'
-        fake_report = ('1337', 'a_job', 'a_user', '10:00:00', 'R',  'q')
+        fake_report = ['1337.server   a_job   a_user   10:00:00   R    q']
         with patch(qstat, return_value=fake_report):
-            assert self.executor._job_status() == 'R'
+            assert self.executor._job_statuses() == {'R'}
 
     def test_job_finished(self):
-        job_status = 'egcg_core.executor.cluster_executor.PBSExecutor._qstat'
-        with patch(job_status, return_value=(1, '1', 'user', 'time', 'B', 'queue')):
+        job_statuses = 'egcg_core.executor.cluster_executor.PBSExecutor._job_statuses'
+        with patch(job_statuses, return_value={'F', 'M', 'X', 'B'}):
             assert not self.executor._job_finished()
-        with patch(job_status, return_value=(1, '1', 'user', 'time', 'F', 'queue')):
+        with patch(job_statuses, return_value={'F', 'F', 'M', 'X'}):
             assert self.executor._job_finished()
 
 
@@ -166,21 +173,26 @@ class TestSlurmExecutor(TestClusterExecutor):
         self.executor.log_cfg = log_cfg
 
     def test_sacct(self):
-        with patch(get_stdout, return_value='1:0') as p:
-            assert self.executor._sacct('ExitCode') == '1:0'
-            p.assert_called_with('sacct -n -j None -o ExitCode')
+        with patch(get_stdout, return_value=' COMPLETED  0:0 \n COMPLETED  0:0\n FAILED 1:0') as p:
+            assert self.executor._sacct('State,ExitCode') == {'COMPLETED  0:0', 'FAILED 1:0'}
+            p.assert_called_with('sacct -nX -j None -o State,ExitCode')
+
+    def test_squeue(self):
+        with patch(get_stdout, return_value='RUNNING\nRUNNING\nRUNNING') as p:
+            assert self.executor._squeue() == {'RUNNING'}
+            p.assert_called_with('squeue -h -j None -o %T')
 
     def test_job_finished(self):
         sacct = 'egcg_core.executor.cluster_executor.SlurmExecutor._sacct'
         patched_squeue = patch('egcg_core.executor.cluster_executor.SlurmExecutor._squeue', return_value='')
-        with patch(sacct, return_value='RUNNING'), patched_squeue:
+        with patch(sacct, return_value=['RUNNING']), patched_squeue:
             assert not self.executor._job_finished()
-        with patch(sacct, return_value='COMPLETED'), patched_squeue:
+        with patch(sacct, return_value=['COMPLETED']), patched_squeue:
             assert self.executor._job_finished()
 
     def test_job_exit_code(self):
         sacct = 'egcg_core.executor.cluster_executor.SlurmExecutor._sacct'
-        with patch(sacct, return_value='CANCELLED 0:0'):
+        with patch(sacct, return_value=['CANCELLED 0:0']):
             assert self.executor._job_exit_code() == 9
-        with patch(sacct, return_value='COMPLETED 0:x'):
+        with patch(sacct, return_value=['COMPLETED 0:x']):
             assert self.executor._job_exit_code() == 0
