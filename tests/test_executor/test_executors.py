@@ -173,13 +173,13 @@ class TestSlurmExecutor(TestClusterExecutor):
         self.executor.log_cfg = log_cfg
 
     def test_sacct(self):
-        with patch(get_stdout, return_value=' COMPLETED  0:0 \n COMPLETED  0:0') as p:
-            assert self.executor._sacct('State,ExitCode') == {'COMPLETED  0:0'}
+        with patch(get_stdout, return_value=' COMPLETED  0:0 \n COMPLETED  0:0\n FAILED 1:0') as p:
+            assert self.executor._sacct('State,ExitCode') == {'COMPLETED  0:0', 'FAILED 1:0'}
             p.assert_called_with('sacct -nX -j None -o State,ExitCode')
 
     def test_squeue(self):
         with patch(get_stdout, return_value='RUNNING\nRUNNING\nRUNNING') as p:
-            assert self.executor._squeue() == ['RUNNING']
+            assert self.executor._squeue() == {'RUNNING'}
             p.assert_called_with('squeue -h -j None -o %T')
 
     def test_job_finished(self):

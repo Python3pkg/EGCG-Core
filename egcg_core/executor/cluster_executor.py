@@ -87,9 +87,9 @@ class ClusterExecutor(AppLogger):
 
 
 class PBSExecutor(ClusterExecutor):
+    script_writer = script_writers.PBSWriter
     unfinished_statuses = 'BEHQRSTUW'
     finished_statuses = 'FXM'
-    script_writer = script_writers.PBSWriter
 
     def _qstat(self):
         data = self._get_stdout('qstat -xt {j}'.format(j=self.job_id)).split('\n')
@@ -111,9 +111,10 @@ class PBSExecutor(ClusterExecutor):
 
 
 class SlurmExecutor(ClusterExecutor):
-    unfinished_statuses = ('RUNNING', 'RESIZING', 'SUSPENDED', 'PENDING')
-    finished_statuses = ('COMPLETED', 'CANCELLED', 'CANCELLED+', 'FAILED', 'TIMEOUT', 'NODE_FAIL')
     script_writer = script_writers.SlurmWriter
+    unfinished_statuses = ('CONFIGURING', 'COMPLETING', 'PENDING', 'RUNNING', 'RESIZING', 'SUSPENDED',)
+    finished_statuses = ('BOOT_FAIL', 'CANCELLED', 'COMPLETED', 'DEADLINE', 'FAILED', 'NODE_FAIL',
+                         'PREEMPTED', 'TIMEOUT', 'NODE_FAIL')
 
     def _submit_job(self):
         # sbatch stdout: "Submitted batch job {job_id}"
@@ -121,27 +122,31 @@ class SlurmExecutor(ClusterExecutor):
 
     def _sacct(self, output_format):
         s = self._get_stdout('sacct -nX -j {j} -o {o}'.format(j=self.job_id, o=output_format))
-        return set([t.strip() for t in s.split('\n')])
+        return set(t.strip() for t in s.split('\n'))
 
     def _squeue(self):
         s = self._get_stdout('squeue -h -j {j} -o %T'.format(j=self.job_id))
         if s:
-            return sorted(set(s.split('\n')))
+            return set(s.split('\n'))
 
     def _job_statuses(self):
         s = self._squeue()
         if s:  # job is still running, so use output from squeue
             return s
-        return self._sacct('State')  # job no longer in squeue, so use sacct
+        return set(s.rstrip('+') for s in self._sacct('State'))  # job no longer in squeue, so use sacct
 
     def _job_exit_code(self):
         exit_status = 0
-        states = self._sacct('State,ExitCode')
-        for s in states:
-            state, exit_code = s.split()
+        states = set()
+        reports = self._sacct('State,ExitCode')
+        for r in reports:
+            state, exit_code = r.split()
+            state = state.rstrip('+')
             exit_code = int(exit_code.split(':')[0])
-            if 'CANCELLED' in state and not exit_code:  # cancelled jobs can still be exit status 0
+            if state == 'CANCELLED' and not exit_code:  # cancelled jobs can still be exit status 0
                 self.debug('Found a cancelled job - using exit status 9')
                 exit_code = 9
             exit_status += exit_code
+
+        self.info('Got %s states from %s jobs: %s', len(states), len(reports), states)
         return exit_status
