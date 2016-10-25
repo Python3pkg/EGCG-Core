@@ -104,17 +104,17 @@ class ClusterWriter(ScriptWriter):
 
     def add_header(self):
         """Write a header for a given resource manager. If multiple jobs, split them into a job array."""
-        fmt = {'job_name': self.job_name, 'cpus': self.cluster_config['cpus'],
-               'mem': self.cluster_config['mem'], 'queue': self.queue, 'log_file': self.log_file,
-               'walltime': self.cluster_config.get('walltime'), 'jobs': str(self.array_jobs_written)}
+        header_mapping = dict(self.cluster_config)
+        header_mapping.update(job_name=self.job_name, queue=self.queue,
+                              log_file=self.log_file, jobs=str(self.array_jobs_written))
 
         header_lines = list(self.header)
 
-        if 'walltime' in self.cluster_config:
+        if self.cluster_config.get('walltime'):
             header_lines.append(self.walltime_header)
 
         if self.array_jobs_written > 1:
             header_lines.append(self.array_header)
 
-        header_lines.extend(['', 'cd ' + self.working_dir, ''])
-        self.lines = [l.format(**fmt) for l in header_lines] + self.lines  # prepend the formatted header
+        header_lines.extend(['', 'cd ' + self.working_dir, ''])  # prepend the formatted header
+        self.lines = [l.format(**header_mapping) for l in header_lines] + self.lines
