@@ -25,14 +25,14 @@ class ClusterExecutor(AppLogger):
 
     def write_script(self):
         if self.prelim_cmds:
-            self.writer.register_cmds(*self.prelim_cmds)
+            self.writer.register_cmds(*self.prelim_cmds, parallel=False)
 
         pre_job_source = cfg.query('executor', 'pre_job_source')
         if pre_job_source:
             self.writer.register_cmd('source ' + pre_job_source)
 
         self.writer.line_break()
-        self.writer.register_cmds(*self.cmds)
+        self.writer.register_cmds(*self.cmds, parallel=True)
         self.writer.add_header()
         self.writer.save()
 

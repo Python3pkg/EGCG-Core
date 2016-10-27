@@ -29,7 +29,7 @@ class TestScriptWriter(TestEGCG):
         assert self.script_writer.lines == ['a_cmd > a_log_file 2>&1']
 
     def test_register_cmds(self):
-        self.script_writer.register_cmds('this', 'that')
+        self.script_writer.register_cmds('this', 'that', parallel=False)
         assert self.script_writer.lines == ['this', 'that']
 
     def test_add_job_array(self):
@@ -96,7 +96,7 @@ class TestClusterWriter(TestScriptWriter):
 
     def test(self):
         self.script_writer.log_commands = False
-        self.script_writer.register_cmds('some', 'preliminary', 'cmds')
+        self.script_writer.register_cmds('some', 'preliminary', 'cmds', parallel=False)
         self.script_writer.register_cmds('this', 'that', 'other', parallel=True)
         self.script_writer.add_header()
 

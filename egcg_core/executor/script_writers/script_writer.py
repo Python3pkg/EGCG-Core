@@ -32,7 +32,7 @@ class ScriptWriter(AppLogger):
             cmd += ' > %s 2>&1' % log_file
         self.add_line(cmd)
 
-    def register_cmds(self, *cmds, parallel=False):
+    def register_cmds(self, *cmds, parallel):
         if parallel:
             self.add_job_array(*cmds)
         else:
