@@ -7,7 +7,7 @@ from egcg_core.exceptions import RestCommunicationError
 
 class Communicator(AppLogger):
     table = {' ': '', '\'': '"', 'None': 'null'}
-    successful_statuses = (200, 201)
+    successful_statuses = (200, 201, 202)
 
     def __init__(self, auth=None, baseurl=None):
         self._baseurl = baseurl
@@ -70,10 +70,9 @@ class Communicator(AppLogger):
         if r.status_code in self.successful_statuses:
             if not quiet:
                 self.debug(report)
-        elif r.status_code == 401:
-            raise RestCommunicationError('Invalid auth credentials')
         else:
             self.error(report)
+            raise RestCommunicationError('Encountered a %s status code: %s' % (r.status_code, r.reason))
         return r
 
     def get_content(self, endpoint, paginate=True, quiet=False, **query_args):
