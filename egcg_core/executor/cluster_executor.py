@@ -16,11 +16,11 @@ class ClusterExecutor(AppLogger):
         :param list cmds: Full path to a job submission script
         """
         self.interval = cfg.query('executor', 'join_interval', ret_default=30)
-        self.writer = self._get_writer(job_queue=cfg['executor']['job_queue'], **cluster_config)
         self.job_id = None
         self.cmds = cmds
         self.prelim_cmds = prelim_cmds
         self._job_running = False
+        self.writer = self._get_writer(job_queue=cfg['executor']['job_queue'], **cluster_config)
 
     def write_script(self):
         if self.prelim_cmds:
@@ -129,7 +129,8 @@ class SlurmExecutor(ClusterExecutor):
 
     def _submit_job(self):
         # sbatch stdout: "Submitted batch job {job_id}"
-        return super()._submit_job().split()[-1].strip()
+        super()._submit_job()
+        self.job_id = self.job_id.split()[-1].strip()
 
     def _sacct(self, output_format):
         data = self._get_stdout('sacct -nX -j {j} -o {o}'.format(j=self.job_id, o=output_format))
