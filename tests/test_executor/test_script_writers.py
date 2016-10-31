@@ -44,7 +44,6 @@ class TestScriptWriter(TestEGCG):
             'a_job_queue',
             cpus=1,
             mem=2,
-            queue='a_queue',
             walltime='3'
         )
         assert self.script_writer.lines == []
@@ -54,11 +53,9 @@ class TestScriptWriter(TestEGCG):
 
     def test_init(self):
         w = self.script_writer
-        assert w.job_name == 'a_job_name'
-        assert w.script_name == join(working_dir, w.job_name) + w.suffix
+        assert w.script_name == join(working_dir, 'a_job_name') + w.suffix
         assert w.log_commands is True
         assert w.log_file == join(working_dir, 'a_job_name.log')
-        assert w.queue == 'a_job_queue'
 
     def test_register_cmd(self):
         self.script_writer.register_cmd('a_cmd', log_file='a_log_file')
@@ -86,7 +83,7 @@ class TestScriptWriter(TestEGCG):
 
     def test_trim_field(self):
         s = script_writers.PBSWriter('a_job_name_too_long_for_pbs', 'a_working_dir', 'a_job_queue')
-        assert s.job_name == 'a_job_name_too_'
+        assert s.cluster_config['job_name'] == 'a_job_name_too_'
 
     def test(self):
         self.script_writer.log_commands = False

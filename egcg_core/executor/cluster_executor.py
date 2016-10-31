@@ -15,13 +15,12 @@ class ClusterExecutor(AppLogger):
         """
         :param list cmds: Full path to a job submission script
         """
-        self.job_queue = cfg['executor']['job_queue']
         self.interval = cfg.query('executor', 'join_interval', ret_default=30)
-        self.writer = self._get_writer(**cluster_config)
+        self.writer = self._get_writer(job_queue=cfg['executor']['job_queue'], **cluster_config)
         self.job_id = None
         self.cmds = cmds
         self.prelim_cmds = prelim_cmds
-        self.submit_cmd = cfg['executor']['qsub'] + ' ' + self.writer.script_name
+        self._job_running = False
 
     def write_script(self):
         if self.prelim_cmds:
@@ -40,17 +39,19 @@ class ClusterExecutor(AppLogger):
         """Write the jobs into a script, submit it and capture qsub's output as self.job_id."""
         self.write_script()
         self._submit_job()
-        self.info('Submitted "%s" as job %s' % (self.submit_cmd, self.job_id))
+        self._job_running = True
+        self.info('Submitted "%s" as job %s' % (self.writer.script_name, self.job_id))
 
     def join(self):
         """Wait until the job has finished, then return its exit status."""
         sleep(10)
         while not self._job_finished():
             sleep(self.interval)
+        self._job_running = False
         return self._job_exit_code()
 
-    def _get_writer(self, job_name, working_dir, walltime=None, cpus=1, mem=2, log_commands=True):
-        return self.script_writer(job_name, working_dir, self.job_queue, log_commands=log_commands, cpus=cpus, mem=mem, walltime=walltime)
+    def _get_writer(self, job_name, working_dir, job_queue, walltime=None, cpus=1, mem=2, log_commands=True):
+        return self.script_writer(job_name, working_dir, job_queue, log_commands=log_commands, cpus=cpus, mem=mem, walltime=walltime)
 
     def _job_statuses(self):
         return ()
@@ -59,7 +60,7 @@ class ClusterExecutor(AppLogger):
         raise NotImplementedError
 
     def _submit_job(self):
-        self.job_id = self._get_stdout(self.submit_cmd)
+        self.job_id = self._get_stdout(cfg['executor']['qsub'] + ' ' + self.writer.script_name)
         if self.job_id is None:
             raise EGCGError('Job submission failed')
 
@@ -88,7 +89,7 @@ class ClusterExecutor(AppLogger):
         raise NotImplementedError
 
     def __del__(self):
-        if self.job_id and not self._job_finished():
+        if self._job_running:
             self._cancel_job()
 
 
