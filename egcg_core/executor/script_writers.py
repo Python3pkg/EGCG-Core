@@ -9,10 +9,20 @@ class ScriptWriter(AppLogger):
     list, which is appended by self.write_line. This list is then saved line by line to self.script_file by
     self.save.
     """
+    header = (
+        '#!/bin/bash\n',
+        '# job name: {job_name}',
+        '# cpus: {cpus}',
+        '# mem: {mem}gb',
+        '# queue: {queue}',
+        '# log file: {log_file}'
+    )
+    walltime_header = '# walltime: {walltime}'
+    array_header = '# job array: 1-{jobs}'
     suffix = '.sh'
     array_index = 'JOB_INDEX'
 
-    def __init__(self, job_name, working_dir, job_queue, log_commands=True):
+    def __init__(self, job_name, working_dir, job_queue, log_commands=True, **cluster_config):
         """
         :param str job_name: Desired full path to the pbs script to write
         """
@@ -26,6 +36,7 @@ class ScriptWriter(AppLogger):
         self.info('Log file: ' + self.log_file)
         self.lines = []
         self.array_jobs_written = 0
+        self.cluster_config = cluster_config
 
     def register_cmd(self, cmd, log_file=None):
         if log_file:
@@ -85,23 +96,6 @@ class ScriptWriter(AppLogger):
         with open(self.script_name, 'w') as f:
             f.write('\n'.join(self.lines) + '\n')
 
-
-class ClusterWriter(ScriptWriter):
-    header = (
-        '#!/bin/bash\n',
-        '# job name: {job_name}',
-        '# cpus: {cpus}',
-        '# mem: {mem}gb',
-        '# queue: {queue}',
-        '# log file: {log_file}'
-    )
-    walltime_header = '# walltime: {walltime}'
-    array_header = '# job array: 1-{jobs}'
-
-    def __init__(self, job_name, working_dir, job_queue, log_commands=True, **cluster_config):
-        super().__init__(job_name, working_dir, job_queue, log_commands)
-        self.cluster_config = cluster_config
-
     def add_header(self):
         """Write a header for a given resource manager. If multiple jobs, split them into a job array."""
         header_mapping = dict(self.cluster_config)
@@ -118,3 +112,42 @@ class ClusterWriter(ScriptWriter):
 
         header_lines.extend(['', 'cd ' + self.working_dir, ''])  # prepend the formatted header
         self.lines = [l.format(**header_mapping) for l in header_lines] + self.lines
+
+
+class SlurmWriter(ScriptWriter):
+    """Writes a Bash script runnable on Slurm"""
+    suffix = '.slurm'
+    array_index = 'SLURM_ARRAY_TASK_ID'
+
+    header = (
+        '#!/bin/bash\n',
+        '#SBATCH --job-name="{job_name}"',
+        '#SBATCH --cpus-per-task={cpus}',
+        '#SBATCH --mem={mem}g',
+        '#SBATCH --partition={queue}',
+        '#SBATCH --output={log_file}'
+    )
+    walltime_header = '#SBATCH --time={walltime}:00:00'
+    array_header = '#SBATCH --array=1-{jobs}'
+
+
+class PBSWriter(ScriptWriter):
+    """Writes a Bash script runnable on PBS"""
+    suffix = '.pbs'
+    array_index = 'PBS_ARRAY_INDEX'
+
+    header = (
+        '#!/bin/bash\n',
+        '#PBS -N {job_name}',
+        '#PBS -l ncpus={cpus},mem={mem}gb',
+        '#PBS -q {queue}',
+        '#PBS -j oe',
+        '#PBS -o {log_file}'
+    )
+    walltime_header = '#PBS -l walltime={walltime}:00:00'
+    array_header = '#PBS -J 1-{jobs}'
+
+    def __init__(self, job_name, working_dir, job_queue, log_commands=True, **cluster_config):
+        super().__init__(job_name, working_dir, job_queue, log_commands, **cluster_config)
+        if len(self.job_name) > 15:
+            self.job_name = self.job_name[:15]  # job names longer than 15 chars break PBS

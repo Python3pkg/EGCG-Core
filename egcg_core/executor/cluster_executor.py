@@ -7,7 +7,7 @@ from . import script_writers
 
 
 class ClusterExecutor(AppLogger):
-    script_writer = script_writers.ClusterWriter
+    script_writer = script_writers.ScriptWriter
     finished_statuses = None
     unfinished_statuses = None
 
@@ -39,7 +39,7 @@ class ClusterExecutor(AppLogger):
     def start(self):
         """Write the jobs into a script, submit it and capture qsub's output as self.job_id."""
         self.write_script()
-        self.job_id = self._submit_job()
+        self._submit_job()
         self.info('Submitted "%s" as job %s' % (self.submit_cmd, self.job_id))
 
     def join(self):
@@ -53,16 +53,15 @@ class ClusterExecutor(AppLogger):
         return self.script_writer(job_name, working_dir, self.job_queue, log_commands=log_commands, cpus=cpus, mem=mem, walltime=walltime)
 
     def _job_statuses(self):
-        raise NotImplementedError
+        return ()
 
     def _job_exit_code(self):
         raise NotImplementedError
 
     def _submit_job(self):
-        p = self._get_stdout(self.submit_cmd)
-        if p is None:
+        self.job_id = self._get_stdout(self.submit_cmd)
+        if self.job_id is None:
             raise EGCGError('Job submission failed')
-        return p
 
     def _job_finished(self):
         statuses = self._job_statuses()
@@ -84,6 +83,13 @@ class ClusterExecutor(AppLogger):
             return None
         else:
             return o.decode('utf-8').strip()
+
+    def _cancel_job(self):
+        raise NotImplementedError
+
+    def __del__(self):
+        if self.job_id and not self._job_finished():
+            self._cancel_job()
 
 
 class PBSExecutor(ClusterExecutor):
@@ -109,6 +115,10 @@ class PBSExecutor(ClusterExecutor):
             exit_status += self.finished_statuses.index(s)
         return exit_status
 
+    def _cancel_job(self):
+        msg = self._get_stdout('qdel ' + self.job_id)
+        self.info(msg)
+
 
 class SlurmExecutor(ClusterExecutor):
     script_writer = script_writers.SlurmWriter
@@ -121,8 +131,8 @@ class SlurmExecutor(ClusterExecutor):
         return super()._submit_job().split()[-1].strip()
 
     def _sacct(self, output_format):
-        s = self._get_stdout('sacct -nX -j {j} -o {o}'.format(j=self.job_id, o=output_format))
-        return set(t.strip() for t in s.split('\n'))
+        data = self._get_stdout('sacct -nX -j {j} -o {o}'.format(j=self.job_id, o=output_format))
+        return set(d.strip() for d in data.split('\n'))
 
     def _squeue(self):
         s = self._get_stdout('squeue -h -j {j} -o %T'.format(j=self.job_id))
@@ -131,7 +141,7 @@ class SlurmExecutor(ClusterExecutor):
 
     def _job_statuses(self):
         s = self._squeue()
-        if s:  # job is still running, so use output from squeue
+        if s:  # job is in squeue, so use that
             return s
         return set(s.rstrip('+') for s in self._sacct('State'))  # job no longer in squeue, so use sacct
 
@@ -150,3 +160,7 @@ class SlurmExecutor(ClusterExecutor):
 
         self.info('Got %s states from %s jobs: %s', len(states), len(reports), states)
         return exit_status
+
+    def _cancel_job(self):
+        msg = self._get_stdout('scancel ' + self.job_id)
+        self.info(msg)
