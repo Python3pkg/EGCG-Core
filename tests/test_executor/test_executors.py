@@ -5,7 +5,7 @@ import subprocess
 from unittest.mock import patch, Mock
 from tests import TestEGCG
 from egcg_core.executor import Executor, StreamExecutor, ArrayExecutor, PBSExecutor, SlurmExecutor
-from egcg_core.executor.cluster_executor import ClusterExecutor
+from egcg_core.executor.cluster_executor import ClusterExecutor, running_executors, stop_running_executors
 from egcg_core.exceptions import EGCGError
 
 get_stdout = 'egcg_core.executor.cluster_executor.ClusterExecutor._get_stdout'
@@ -82,6 +82,7 @@ class TestClusterExecutor(TestEGCG):
     def setUp(self):
         os.makedirs(os.path.join(self.assets_path, 'a_run_id'), exist_ok=True)
         self.executor = self._get_executor(self.script)
+        self.ppath = 'egcg_core.executor.cluster_executor.' + self.executor.__class__.__name__
 
     def tearDown(self):
         shutil.rmtree(os.path.join(self.assets_path, 'a_run_id'))
@@ -106,12 +107,24 @@ class TestClusterExecutor(TestEGCG):
             assert str(err) == 'Job submission failed'
 
     def test_join(self):
-        e_cls = 'egcg_core.executor.cluster_executor.' + self.executor.__class__.__name__
-        job_finished = e_cls + '._job_finished'
-        exit_code = e_cls + '._job_exit_code'
+        job_finished = self.ppath + '._job_finished'
+        exit_code = self.ppath + '._job_exit_code'
         self.executor.finished_statuses = 'FXM'
         with patch(job_finished, return_value=True), patch(exit_code, return_value=0), patch(sleep):
             assert self.executor.join() == 0
+
+    def test_job_cancellation(self):
+        with patch(self.ppath + '._submit_job'), patch(self.ppath + '._job_finished', return_value=True),\
+             patch(self.ppath + '.write_script'), patch(self.ppath + '._job_exit_code', return_value=9),\
+             patch(self.ppath + '.cancel_job'), patch(sleep):
+
+            self.executor.job_id = 'test_job'
+            self.executor.start()
+            assert running_executors == {'test_job': self.executor}
+            stop_running_executors()
+            assert running_executors == {}
+
+        self.executor.job_id = None  # stop __del__ from complaining
 
 
 class TestPBSExecutor(TestClusterExecutor):

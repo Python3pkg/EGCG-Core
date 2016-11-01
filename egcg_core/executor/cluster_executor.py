@@ -5,6 +5,16 @@ from egcg_core.app_logging import AppLogger
 from egcg_core.config import cfg
 from . import script_writers
 
+running_executors = {}
+
+
+def stop_running_executors():
+    for job_id in running_executors:
+        running_executors[job_id].cancel_job()
+
+    for job_id in list(running_executors):
+        running_executors[job_id].join()
+
 
 class ClusterExecutor(AppLogger):
     script_writer = script_writers.ScriptWriter
@@ -19,7 +29,6 @@ class ClusterExecutor(AppLogger):
         self.job_id = None
         self.cmds = cmds
         self.prelim_cmds = prelim_cmds
-        self._job_running = False
         self.writer = self._get_writer(job_queue=cfg['executor']['job_queue'], **cluster_config)
 
     def write_script(self):
@@ -39,15 +48,15 @@ class ClusterExecutor(AppLogger):
         """Write the jobs into a script, submit it and capture qsub's output as self.job_id."""
         self.write_script()
         self._submit_job()
-        self._job_running = True
+        running_executors[self.job_id] = self  # register to running_executors
         self.info('Submitted "%s" as job %s' % (self.writer.script_name, self.job_id))
 
     def join(self):
         """Wait until the job has finished, then return its exit status."""
-        sleep(10)
+        sleep(5)
         while not self._job_finished():
             sleep(self.interval)
-        self._job_running = False
+        running_executors.pop(self.job_id, None)  # unregister from running_executors
         return self._job_exit_code()
 
     def _get_writer(self, job_name, working_dir, job_queue, walltime=None, cpus=1, mem=2, log_commands=True):
@@ -85,12 +94,12 @@ class ClusterExecutor(AppLogger):
         else:
             return o.decode('utf-8').strip()
 
-    def _cancel_job(self):
+    def cancel_job(self):
         raise NotImplementedError
 
     def __del__(self):
-        if self._job_running:
-            self._cancel_job()
+        if self.job_id:
+            self.cancel_job()
 
 
 class PBSExecutor(ClusterExecutor):
@@ -116,7 +125,7 @@ class PBSExecutor(ClusterExecutor):
             exit_status += self.finished_statuses.index(s)
         return exit_status
 
-    def _cancel_job(self):
+    def cancel_job(self):
         msg = self._get_stdout('qdel ' + self.job_id)
         self.info(msg)
 
@@ -163,6 +172,6 @@ class SlurmExecutor(ClusterExecutor):
         self.info('Got %s states from %s jobs: %s', len(states), len(reports), states)
         return exit_status
 
-    def _cancel_job(self):
+    def cancel_job(self):
         msg = self._get_stdout('scancel ' + self.job_id)
         self.info(msg)
