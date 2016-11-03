@@ -95,6 +95,10 @@ class ClusterExecutor(AppLogger):
             return o.decode('utf-8').strip()
 
     def cancel_job(self):
+        if not self._job_finished():
+            self._cancel_job()
+
+    def _cancel_job(self):
         raise NotImplementedError
 
 
@@ -121,7 +125,7 @@ class PBSExecutor(ClusterExecutor):
             exit_status += self.finished_statuses.index(s)
         return exit_status
 
-    def cancel_job(self):
+    def _cancel_job(self):
         msg = self._get_stdout('qdel ' + self.job_id)
         self.info(msg)
 
@@ -169,6 +173,6 @@ class SlurmExecutor(ClusterExecutor):
         self.info('Got %s states from %s jobs: %s', len(states), len(reports), states)
         return exit_status
 
-    def cancel_job(self):
+    def _cancel_job(self):
         msg = self._get_stdout('scancel ' + self.job_id)
         self.info(msg)

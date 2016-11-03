@@ -124,8 +124,6 @@ class TestClusterExecutor(TestEGCG):
             stop_running_jobs()
             assert running_executors == {}
 
-        self.executor.job_id = None  # stop __del__ from complaining
-
 
 class TestPBSExecutor(TestClusterExecutor):
     def _get_executor(self, cmd):
