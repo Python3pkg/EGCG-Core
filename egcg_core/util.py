@@ -90,7 +90,7 @@ def move_dir(src_dir, dest_dir):
     contents = os.listdir(src_dir)
     try:
         for f in contents:
-            if os.path.isdir(f):
+            if os.path.isdir(os.path.join(src_dir, f)):
                 move_dir(os.path.join(src_dir, f), os.path.join(dest_dir, f))
             else:
                 _move_file_or_link_target(os.path.join(src_dir, f), dest_dir)
@@ -102,6 +102,9 @@ def move_dir(src_dir, dest_dir):
 def _move_file_or_link_target(file_path, dest_dir):
     """Move a file to a destination directory"""
     dest_file = os.path.join(dest_dir, os.path.basename(file_path))
+    if os.path.isdir(file_path):
+        app_logger.warning('Attempting to move a dir with _move_file_or_link_target')
+        return
     if os.path.islink(file_path):
         file_path = os.path.realpath(file_path)
     shutil.move(file_path, dest_file)
