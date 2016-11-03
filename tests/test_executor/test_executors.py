@@ -5,7 +5,7 @@ import subprocess
 from unittest.mock import patch, Mock
 from tests import TestEGCG
 from egcg_core.executor import Executor, StreamExecutor, ArrayExecutor, PBSExecutor, SlurmExecutor
-from egcg_core.executor.cluster_executor import ClusterExecutor, running_executors, stop_running_executors
+from egcg_core.executor.cluster_executor import ClusterExecutor, running_executors, stop_running_jobs
 from egcg_core.exceptions import EGCGError
 
 get_stdout = 'egcg_core.executor.cluster_executor.ClusterExecutor._get_stdout'
@@ -121,7 +121,7 @@ class TestClusterExecutor(TestEGCG):
             self.executor.job_id = 'test_job'
             self.executor.start()
             assert running_executors == {'test_job': self.executor}
-            stop_running_executors()
+            stop_running_jobs()
             assert running_executors == {}
 
         self.executor.job_id = None  # stop __del__ from complaining

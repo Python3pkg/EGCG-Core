@@ -8,7 +8,7 @@ from . import script_writers
 running_executors = {}
 
 
-def stop_running_executors():
+def stop_running_jobs():
     for job_id in running_executors:
         running_executors[job_id].cancel_job()
 
@@ -97,10 +97,6 @@ class ClusterExecutor(AppLogger):
     def cancel_job(self):
         raise NotImplementedError
 
-    def __del__(self):
-        if self.job_id:
-            self.cancel_job()
-
 
 class PBSExecutor(ClusterExecutor):
     script_writer = script_writers.PBSWriter
@@ -163,6 +159,7 @@ class SlurmExecutor(ClusterExecutor):
         for r in reports:
             state, exit_code = r.split()
             state = state.rstrip('+')
+            states.add(state)
             exit_code = int(exit_code.split(':')[0])
             if state == 'CANCELLED' and not exit_code:  # cancelled jobs can still be exit status 0
                 self.debug('Found a cancelled job - using exit status 9')
