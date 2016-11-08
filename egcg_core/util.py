@@ -44,7 +44,7 @@ def find_all_fastqs(location):
     """Find fastqs in an input folder, regardless of directory structure."""
     fastqs = []
     for name, dirs, files in os.walk(location):
-        fastqs.extend([os.path.join(name, f) for f in files if f.endswith('.fastq.gz')])
+        fastqs.extend(os.path.join(name, f) for f in files if f.endswith('.fastq.gz'))
     app_logger.info('Found %s fastqs in %s', len(fastqs), location)
     return fastqs
 
@@ -89,6 +89,6 @@ def move_dir(src_dir, dest_dir):
                 dest_file = os.path.join(dest_dir, os.path.basename(fp))
                 shutil.move(fp, dest_file)
         return 0
-    except OSError as e:  # TODO: should this error be caught?
-        app_logger.error('OSError: %s' % str(e))
+    except OSError as e:
+        app_logger.error('OSError: ' + str(e))
         return 1

@@ -1,7 +1,7 @@
 import hashlib
 from os import makedirs
 from shutil import rmtree
-from os.path import join
+from os.path import join, basename
 from tests import TestEGCG
 from egcg_core import util
 
@@ -122,5 +122,3 @@ class TestMoveDir(TestEGCG):
         assert util.find_file(to, 'ftest.txt')
         assert md5_from1 == self._md5(join(to, 'ftest.txt'))
         assert md5_from2 == self._md5(join(to, 'subdir', 'ftest.txt'))
-
-

@@ -36,7 +36,7 @@ class Communicator(AppLogger):
             base_url=self.baseurl, endpoint=endpoint
         )
         if query_args:
-            query = '?' + '&'.join(['%s=%s' % (k, v) for k, v in query_args.items()])
+            query = '?' + '&'.join('%s=%s' % (k, v) for k, v in query_args.items())
             url += self._translate(query)
         return url
 
@@ -44,11 +44,13 @@ class Communicator(AppLogger):
     def _parse_query_string(query_string, requires=None):
         if '?' not in query_string:
             return {}
+
         if query_string.count('?') != 1:
             raise RestCommunicationError('Bad query string: ' + query_string)
+
         href, query = query_string.split('?')
-        query = dict([x.split('=') for x in query.split('&')])
-        if requires and not all([r in query for r in requires]):
+        query = dict(x.split('=') for x in query.split('&'))
+        if requires and not all(r in query for r in requires):
             raise RestCommunicationError('%s did not contain all required fields: %s' % (query_string, requires))
         return query
 
