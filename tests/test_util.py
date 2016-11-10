@@ -98,7 +98,7 @@ class TestMoveDir(TestEGCG):
         assert util.find_file(frm, 'ftest.txt')
         assert not util.find_file(to)
 
-        util.move_dir(frm, to)
+        assert util.move_dir(frm, to) == 0
 
         assert not util.find_file(frm, 'ftest.txt')
         assert util.find_file(to, 'ftest.txt')

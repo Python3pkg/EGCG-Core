@@ -79,16 +79,12 @@ def same_fs(file1, file2):
 
 def move_dir(src_dir, dest_dir):
     os.makedirs(dest_dir, exist_ok=True)
-    contents = os.listdir(src_dir)
-    try:
-        for f in contents:
-            if os.path.isdir(os.path.join(src_dir, f)):
-                move_dir(os.path.join(src_dir, f), os.path.join(dest_dir, f))
-            else:
-                fp = os.path.realpath(os.path.join(src_dir, f))
-                dest_file = os.path.join(dest_dir, os.path.basename(fp))
-                shutil.move(fp, dest_file)
-        return 0
-    except OSError as e:
-        app_logger.error('OSError: ' + str(e))
-        return 1
+    for f in os.listdir(src_dir):
+        src_file = os.path.join(src_dir, f)
+        if os.path.isdir(src_file):
+            move_dir(src_file, os.path.join(dest_dir, f))
+        else:
+            fp = os.path.realpath(src_file)
+            dest_file = os.path.join(dest_dir, os.path.basename(fp))
+            shutil.move(fp, dest_file)
+    return 0
