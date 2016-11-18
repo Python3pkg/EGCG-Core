@@ -1,9 +1,7 @@
 import hashlib
 from os import makedirs
 from shutil import rmtree
-from os.path import join
-
-
+from os.path import join, basename
 from tests import TestEGCG
 from egcg_core import util
 
@@ -38,17 +36,16 @@ def test_find_fastqs_with_lane():
 
 def test_find_all_fastqs():
     fastqs = util.find_all_fastqs(fastq_dir)
-    for file_name in ['10015AT0001_S6_L004_R1_001.fastq.gz', '10015AT0001_S6_L004_R2_001.fastq.gz']:
-        assert join(fastq_dir, '10015AT', '10015AT0001', file_name) in fastqs
+    for file_name in ('10015AT0001_S6_L004_R1_001.fastq.gz', '10015AT0001_S6_L004_R2_001.fastq.gz',
+                      '10015AT0002_merged_R1.fastq.gz', '10015AT0002_merged_R2.fastq.gz'):
+        assert file_name in [basename(f) for f in fastqs]
 
 
 def test_find_all_fastq_pairs():
-    fastqs = util.find_all_fastq_pairs(fastq_dir)
-    for f1, f2 in [('10015AT0001_S6_L004_R1_001.fastq.gz', '10015AT0001_S6_L004_R2_001.fastq.gz'),
-                   ('10015AT0001_S6_L005_R1_001.fastq.gz', '10015AT0001_S6_L005_R2_001.fastq.gz')]:
-        fp1 = join(fastq_dir, '10015AT', '10015AT0001', f1)
-        fp2 = join(fastq_dir, '10015AT', '10015AT0001', f2)
-        assert (fp1, fp2) in fastqs
+    observed = util.find_all_fastq_pairs(join(fastq_dir, '10015AT', '10015AT0001'))
+    expected = [('10015AT0001_S6_L004_R1_001.fastq.gz', '10015AT0001_S6_L004_R2_001.fastq.gz'),
+                ('10015AT0001_S6_L005_R1_001.fastq.gz', '10015AT0001_S6_L005_R2_001.fastq.gz')]
+    assert [(basename(f), basename(g)) for f, g in observed] == expected
 
 
 def test_same_fs():
@@ -101,7 +98,7 @@ class TestMoveDir(TestEGCG):
         assert util.find_file(frm, 'ftest.txt')
         assert not util.find_file(to)
 
-        util.move_dir(frm, to)
+        assert util.move_dir(frm, to) == 0
 
         assert not util.find_file(frm, 'ftest.txt')
         assert util.find_file(to, 'ftest.txt')
@@ -125,5 +122,3 @@ class TestMoveDir(TestEGCG):
         assert util.find_file(to, 'ftest.txt')
         assert md5_from1 == self._md5(join(to, 'ftest.txt'))
         assert md5_from2 == self._md5(join(to, 'subdir', 'ftest.txt'))
-
-
