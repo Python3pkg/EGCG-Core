@@ -85,6 +85,6 @@ def move_dir(src_dir, dest_dir):
             move_dir(src_file, os.path.join(dest_dir, f))
         else:
             fp = os.path.realpath(src_file)
-            dest_file = os.path.join(dest_dir, os.path.basename(fp))
+            dest_file = os.path.join(dest_dir, os.path.basename(src_file))
             shutil.move(fp, dest_file)
     return 0

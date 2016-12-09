@@ -1,4 +1,5 @@
 import hashlib
+import os
 from os import makedirs
 from shutil import rmtree
 from os.path import join, basename
@@ -67,6 +68,14 @@ class TestMoveDir(TestEGCG):
             else:
                 of.write('This is a test file')
 
+    def _create_link(self, f, content=None):
+        os.symlink()
+        with open(f, 'w') as of:
+            if content:
+                of.write(content)
+            else:
+                of.write('This is a test file')
+
     def _md5(self, f):
         hash_md5 = hashlib.md5()
         with open(f, "rb") as f:
@@ -81,6 +90,10 @@ class TestMoveDir(TestEGCG):
         self._create_test_file(join(self.test_dir, 'from', 'ftest.txt'))
         self._create_test_file(join(self.test_dir, 'from', 'subdir', 'ftest.txt'))
 
+        makedirs(join(self.test_dir, 'external'), exist_ok=True)
+        self._create_test_file(join(self.test_dir, 'external', 'external.txt'), 'External file')
+        os.symlink(join(self.test_dir, 'external', 'external.txt'), join(self.test_dir, 'from', 'external_renamed.txt'))
+
         makedirs(join(self.test_dir, 'exists'), exist_ok=True)
         makedirs(join(self.test_dir, 'exists', 'subdir'), exist_ok=True)
         self._create_test_file(join(self.test_dir, 'exists', 'subdir', 'ftest.txt'), 'another file')
@@ -90,6 +103,7 @@ class TestMoveDir(TestEGCG):
         rmtree(util.find_file(self.test_dir, 'to'))
         rmtree(util.find_file(self.test_dir, 'from'))
         rmtree(util.find_file(self.test_dir, 'exists'))
+        rmtree(util.find_file(self.test_dir, 'external'))
 
     def test_move_dir(self):
         frm = join(self.test_dir, 'from')
@@ -104,6 +118,8 @@ class TestMoveDir(TestEGCG):
         assert util.find_file(to, 'ftest.txt')
         assert util.find_file(to, 'subdir', 'ftest.txt')
         assert md5_from == self._md5(join(to, 'ftest.txt'))
+
+        assert util.find_file(to, 'external_renamed.txt')
 
     def _move_dir_exists(self):
         frm = join(self.test_dir, 'from')
