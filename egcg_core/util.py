@@ -94,7 +94,7 @@ def move_dir(src_dir, dest_dir):
                 move_dir(os.path.join(src_dir, f), os.path.join(dest_dir, f))
             else:
                 fp = os.path.realpath(os.path.join(src_dir, f))
-                dest_file = os.path.join(dest_dir, os.path.basename(fp))
+                dest_file = os.path.join(dest_dir, os.path.basename(f))
                 shutil.move(fp, dest_file)
         return 0
     except OSError:
