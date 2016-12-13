@@ -69,7 +69,7 @@ class ClusterExecutor(AppLogger):
         raise NotImplementedError
 
     def _submit_job(self):
-        self.job_id = self._get_stdout(cfg['executor']['qsub'] + ' ' + self.writer.script_name)
+        self.job_id = self._run_and_retry(cfg['executor']['qsub'] + ' ' + self.writer.script_name)
         if self.job_id is None:
             raise EGCGError('Job submission failed')
 
@@ -94,6 +94,16 @@ class ClusterExecutor(AppLogger):
         else:
             return o.decode('utf-8').strip()
 
+    def _run_and_retry(self, cmd, retry=3):
+        attempt = 0
+        while attempt < retry:
+            msg = self._get_stdout(cmd)
+            if msg is not None:
+                return msg
+            sleep(5)
+            attempt += 1
+
+
     def cancel_job(self):
         if not self._job_finished():
             self._cancel_job()
@@ -108,7 +118,7 @@ class PBSExecutor(ClusterExecutor):
     finished_statuses = 'FXM'
 
     def _qstat(self):
-        data = self._get_stdout('qstat -xt {j}'.format(j=self.job_id)).split('\n')
+        data = self._run_and_retry('qstat -xt {j}'.format(j=self.job_id)).split('\n')
         return [d for d in data[2:] if d]
 
     def _job_statuses(self):
@@ -126,7 +136,7 @@ class PBSExecutor(ClusterExecutor):
         return exit_status
 
     def _cancel_job(self):
-        msg = self._get_stdout('qdel ' + self.job_id)
+        msg = self._run_and_retry('qdel ' + self.job_id)
         self.info(msg)
 
 
@@ -142,11 +152,11 @@ class SlurmExecutor(ClusterExecutor):
         self.job_id = self.job_id.split()[-1].strip()
 
     def _sacct(self, output_format):
-        data = self._get_stdout('sacct -nX -j {j} -o {o}'.format(j=self.job_id, o=output_format))
+        data = self._run_and_retry('sacct -nX -j {j} -o {o}'.format(j=self.job_id, o=output_format))
         return set(d.strip() for d in data.split('\n'))
 
     def _squeue(self):
-        s = self._get_stdout('squeue -h -j {j} -o %T'.format(j=self.job_id))
+        s = self._run_and_retry('squeue -h -j {j} -o %T'.format(j=self.job_id))
         if s:
             return set(s.split('\n'))
 
@@ -174,5 +184,5 @@ class SlurmExecutor(ClusterExecutor):
         return exit_status
 
     def _cancel_job(self):
-        msg = self._get_stdout('scancel ' + self.job_id)
+        msg = self._run_and_retry('scancel ' + self.job_id)
         self.info(msg)
