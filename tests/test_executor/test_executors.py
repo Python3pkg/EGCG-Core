@@ -100,8 +100,13 @@ class TestClusterExecutor(TestEGCG):
             assert self.executor._get_stdout('ls -d ' + self.assets_path).endswith('tests/assets')
             p.assert_called_with(['ls', '-d', self.assets_path], stdout=-1, stderr=-1)
 
+    def test_run_and_retry(self):
+        with patch(get_stdout, side_effect=[None, None, self.assets_path]) as p, patch(sleep):
+            assert self.executor._run_and_retry('ls -d ' + self.assets_path).endswith('tests/assets')
+            assert p.call_count == 3
+
     def test_dodgy_cmd(self):
-        with pytest.raises(EGCGError) as err, patch(get_stdout, return_value=None):
+        with pytest.raises(EGCGError) as err, patch(get_stdout, return_value=None), patch(sleep):
             ex = self._get_executor(os.path.join(self.assets_path, 'non_existent_script.sh'))
             ex.start()
             assert str(err) == 'Job submission failed'
