@@ -166,7 +166,10 @@ def get_user_sample_name(sample_name, lenient=False):
 def get_sample_gender(sample_name):
     sample = get_sample(sample_name)
     if sample:
-        return sample.udf.get('Gender')
+        gender = sample.udf.get('Sex')
+        if not gender:
+            gender = sample.udf.get('Gender')
+        return gender
 
 
 def get_sample_genotype(sample_name, output_file_name):
