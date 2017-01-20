@@ -1,4 +1,5 @@
 import requests
+import json
 from urllib.parse import urljoin
 from egcg_core.config import cfg
 from egcg_core.app_logging import AppLogger
@@ -6,12 +7,19 @@ from egcg_core.exceptions import RestCommunicationError
 
 
 class Communicator(AppLogger):
-    table = {' ': '', '\'': '"', 'None': 'null'}
+    table = {'None': 'null'}
     successful_statuses = (200, 201, 202)
 
     def __init__(self, auth=None, baseurl=None):
         self._baseurl = baseurl
         self._auth = auth
+
+    @staticmethod
+    def serialise(queries):
+        serialised_queries = {}
+        for k, v in queries.items():
+            serialised_queries[k] = json.dumps(v) if type(v) is dict else v
+        return serialised_queries
 
     @property
     def baseurl(self):
@@ -31,14 +39,8 @@ class Communicator(AppLogger):
             s = s.replace(k, v)
         return s
 
-    def api_url(self, endpoint, **query_args):
-        url = '{base_url}/{endpoint}/'.format(
-            base_url=self.baseurl, endpoint=endpoint
-        )
-        if query_args:
-            query = '?' + '&'.join('%s=%s' % (k, v) for k, v in query_args.items())
-            url += self._translate(query)
-        return url
+    def api_url(self, endpoint):
+        return '{base_url}/{endpoint}/'.format(base_url=self.baseurl, endpoint=endpoint)
 
     @staticmethod
     def _parse_query_string(query_string, requires=None):
@@ -83,8 +85,8 @@ class Communicator(AppLogger):
                 max_results=query_args.pop('max_results', 100),  # default to page size of 100
                 page=query_args.pop('page', 1)
             )
-        url = self.api_url(endpoint, **query_args)
-        return self._req('GET', url, quiet=quiet).json()
+        url = self.api_url(endpoint)
+        return self._req('GET', url, quiet=quiet, params=self.serialise(query_args)).json()
 
     def get_documents(self, endpoint, paginate=True, all_pages=False, quiet=False, **query_args):
         content = self.get_content(endpoint, paginate, quiet, **query_args)
