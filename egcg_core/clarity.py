@@ -310,3 +310,15 @@ def get_project(project_id):
     lims = connection()
     project = lims.get_projects(name=project_id)
     return project
+
+
+def get_genome_version(sample_id):
+    s = get_sample(sample_id)
+    if not s:
+        return None
+    genome_version = s.udf.get('Genome Version')
+    if not genome_version:
+        return None
+    return genome_version
+
+
