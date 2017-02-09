@@ -27,6 +27,7 @@ class ClusterExecutor(AppLogger):
         """
         self.interval = cfg.query('executor', 'join_interval', ret_default=30)
         self.job_id = None
+        self.job_name = cluster_config.get('job_name')
         self.cmds = cmds
         self.prelim_cmds = prelim_cmds
         self.writer = self._get_writer(job_queue=cfg['executor']['job_queue'], **cluster_config)
@@ -180,7 +181,8 @@ class SlurmExecutor(ClusterExecutor):
                 exit_code = 9
             exit_status += exit_code
 
-        self.info('Got %s states from %s jobs: %s', len(states), len(reports), states)
+        self.info('Got %s states from %s (%s) with %s jobs: %s', len(states), self.job_name, self.job_id,
+                  len(reports), states)
         return exit_status
 
     def _cancel_job(self):
