@@ -45,28 +45,19 @@ class TestRestCommunication(TestEGCG):
         self.comm = rest_communication.Communicator()
 
     def test_translate(self):
-        assert self.comm._translate("  '' None") == '""null'
+        assert self.comm._translate('None') == 'null'
 
     def test_api_url(self):
         assert self.comm.api_url('an_endpoint') == rest_url('an_endpoint')
-        exp = '?where={"this":"that"}&embedded={"things":1}&aggregate=True&sort=-_created'
-        obs = self.comm.api_url(
-            'an_endpoint',
-            where={'this': 'that'},
-            embedded={'things': 1},
-            aggregate=True,
-            sort='-_created'
-        ).replace(rest_url('an_endpoint'), '')
-        assert sorted(obs.lstrip('?').split('&')) == sorted(exp.lstrip('?').split('&'))
 
     def test_parse_query_string(self):
-        query_string = 'http://a_url?this=that&other={"another":"more"}'
+        query_string = 'http://a_url?this=that&other={"another":"more"}&things=1'
         no_query_string = 'http://a_url'
         dodgy_query_string = 'http://a_url?this=that?other=another'
 
         p = self.comm._parse_query_string
 
-        assert p(query_string) == {'this': 'that', 'other': '{"another":"more"}'}
+        assert p(query_string) == {'this': 'that', 'other': '{"another":"more"}', 'things': '1'}
         assert p(no_query_string) == {}
 
         with pytest.raises(RestCommunicationError) as e:
@@ -74,8 +65,8 @@ class TestRestCommunication(TestEGCG):
             assert str(e) == 'Bad query string: ' + dodgy_query_string
 
         with pytest.raises(RestCommunicationError) as e2:
-            p(query_string, requires=['things'])
-            assert str(e2) == query_string + ' did not contain all required fields: ' + str(['things'])
+            p(query_string, requires=['thangs'])
+            assert str(e2) == query_string + " did not contain all required fields: ['thangs']"
 
     @patched_response
     def test_req(self, mocked_response):
@@ -98,10 +89,12 @@ class TestRestCommunication(TestEGCG):
                 'this', 'that', 'other', 'another', 'more', 'things'
             ]
             assert all([a[0][1].startswith(rest_url('an_endpoint')) for a in mocked_req.call_args_list])
-            assert [query_args_from_url(a[0][1]) for a in mocked_req.call_args_list] == [
-                {'page': '1', 'max_results': '101'},
-                {'page': '2', 'max_results': '101'},
-                {'page': '3', 'max_results': '101'}
+            assert [a[1] for a in mocked_req.call_args_list] == [
+                # Communicator.get_content passes ints
+                {'params': {'page': 1, 'max_results': 101}, 'quiet': False},
+                # url parsing passes strings, but requests removes the quotes anyway
+                {'params': {'page': '2', 'max_results': '101'}, 'quiet': False},
+                {'params': {'page': '3', 'max_results': '101'}, 'quiet': False}
             ]
 
     @patched_response
@@ -109,8 +102,13 @@ class TestRestCommunication(TestEGCG):
         data = self.comm.get_content(test_endpoint, max_results=100, where={'a_field': 'thing'})
         assert data == test_request_content
         assert mocked_response.call_args[0][1].startswith(rest_url(test_endpoint))
-        assert query_args_from_url(mocked_response.call_args[0][1]) == {
-            'max_results': '100', 'where': {'a_field': 'thing'}, 'page': '1'
+        assert mocked_response.call_args[1] == {
+            'auth': ('a_user', 'a_password'),
+            'params': {
+                'max_results': 100,
+                'where': '{"a_field": "thing"}',
+                'page': 1
+            }
         }
 
     def test_get_documents(self):

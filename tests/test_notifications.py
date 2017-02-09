@@ -63,7 +63,7 @@ class TestEmailNotification(TestEGCG):
         )
 
     def test_retries(self):
-        with patch('smtplib.SMTP', new=FakeSMTP), patch('egcg_core.notifications.email_notification.sleep'):
+        with patch('smtplib.SMTP', new=FakeSMTP), patch('egcg_core.notifications.email.sleep'):
             assert self.email_ntf._try_send(self.email_ntf.preprocess('this is a test')) is True
             assert self.email_ntf._try_send(self.email_ntf.preprocess('dodgy')) is False
 

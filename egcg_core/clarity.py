@@ -308,8 +308,11 @@ def get_sample_release_date(sample_id):
 
 def get_project(project_id):
     lims = connection()
-    project = lims.get_projects(name=project_id)
-    return project
+    projects = lims.get_projects(name=project_id)
+    if len(projects) != 1:
+        app_logger.warning('%s Project(s) found for name %s', len(projects), project_id)
+        return None
+    return projects[0]
 
 
 def get_genome_version(sample_id):
