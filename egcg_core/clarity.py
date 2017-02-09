@@ -323,5 +323,3 @@ def get_genome_version(sample_id):
     if not genome_version:
         return None
     return genome_version
-
-
