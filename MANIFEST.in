@@ -1,6 +1,7 @@
 include *.md
 include *.txt
 include *.yml
+include CHANGELOG
 recursive-include etc *.html
 recursive-include etc *.yaml
 recursive-include tests *.gz
