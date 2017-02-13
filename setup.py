@@ -37,9 +37,6 @@ setup(
         "Intended Audience :: Healthcare Industry",
         "Intended Audience :: Science/Research",
         "Operating System :: POSIX :: Linux",
-        "Programming Language:: Python:: 3.3",
-        "Programming Language:: Python:: 3.4",
-        "Programming Language:: Python:: 3.5"
     ],
     keywords='EdingburghGenomics executor notification logging api rest',
     requires=[_translate_req(r) for r in requirements],  # metadata
