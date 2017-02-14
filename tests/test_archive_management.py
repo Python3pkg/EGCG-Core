@@ -5,7 +5,6 @@ from egcg_core.archive_management import archive_states, release_file_from_lustr
 from tests import TestEGCG
 
 
-
 class TestArchiveManagement(TestEGCG):
 
     def test_archive_states(self):
@@ -19,11 +18,11 @@ class TestArchiveManagement(TestEGCG):
             assert archive_states('testfile') == ['exists', 'archived']
 
         with patch('egcg_core.archive_management._get_stdout',
-                   return_value = 'testfile: (0x00000001) exists, archive_id:1'):
+                   return_value='testfile: (0x00000001) exists, archive_id:1'):
             assert archive_states('testfile') == ['exists']
 
         with patch('egcg_core.archive_management._get_stdout',
-                   return_value = 'testfile: (0x00000000)'):
+                   return_value='testfile: (0x00000000)'):
             assert archive_states('testfile') == []
 
     def test_release_file_from_lustre(self):
@@ -47,7 +46,7 @@ class TestArchiveManagement(TestEGCG):
             assert get_stdout.call_count == 2
 
         with patch('egcg_core.archive_management._get_stdout',
-                   side_effect = [
+                   side_effect=[
                        'testfile: (0x00000009) exists, archive_id:1',
                    ]) as get_stdout:
             self.assertRaises(ArchivingError, release_file_from_lustre, 'testfile')
@@ -81,7 +80,6 @@ class TestArchiveManagement(TestEGCG):
             assert get_stdout.call_count == 3
             assert get_stdout.call_args_list[1][0] == ('lfs hsm_archive testfile',)
 
-
     def test_recall_from_tape(self):
         with patch('egcg_core.archive_management._get_stdout',
                    side_effect=[
@@ -92,4 +90,3 @@ class TestArchiveManagement(TestEGCG):
             assert recall_from_tape('testfile')
             assert get_stdout.call_count == 3
             assert get_stdout.call_args_list[2][0] == ('lfs hsm_restore testfile',)
-
