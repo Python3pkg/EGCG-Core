@@ -313,3 +313,13 @@ def get_project(project_id):
         app_logger.warning('%s Project(s) found for name %s', len(projects), project_id)
         return None
     return projects[0]
+
+
+def get_genome_version(sample_id):
+    s = get_sample(sample_id)
+    if not s:
+        return None
+    genome_version = s.udf.get('Genome Version')
+    if not genome_version:
+        return None
+    return genome_version
