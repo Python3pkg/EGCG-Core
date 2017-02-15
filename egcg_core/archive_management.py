@@ -90,7 +90,7 @@ def recall_from_tape(file_path):
 
 def archive_directory(directory):
     '''Recursively archive all the files in a directory'''
-    success = False
+    success = True
     for f in os.listdir(directory):
         fp = os.path.join(directory, f)
         if os.path.isdir(fp):

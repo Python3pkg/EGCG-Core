@@ -1,7 +1,9 @@
 from unittest.mock import patch
 
+import os
+
 from egcg_core.archive_management import archive_states, release_file_from_lustre, ArchivingError, \
-    register_for_archiving, recall_from_tape
+    register_for_archiving, recall_from_tape, archive_directory
 from tests import TestEGCG
 
 
@@ -90,3 +92,9 @@ class TestArchiveManagement(TestEGCG):
             assert recall_from_tape('testfile')
             assert get_stdout.call_count == 3
             assert get_stdout.call_args_list[2][0] == ('lfs hsm_restore testfile',)
+
+
+    def test_archive_directory(self):
+        with patch('egcg_core.archive_management.register_for_archiving') as register:
+            assert archive_directory(os.path.join(self.assets_path, 'fastqs'))
+            assert register.call_count == 6
