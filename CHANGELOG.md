@@ -1,8 +1,8 @@
-##v0.6.5
+##0.6.5
 
 Fix `get_project`
 
-##v0.6.4
+##0.6.4
 
 - executors now retry their job submissions upon failure, up to three times
 - some log messages from notifications have been reduced to debug
@@ -30,52 +30,52 @@ To fix this, we now pass the query string through [params](http://docs.python-re
     query_string = '?page=1&where={"this": "that", "other": null}'
 ```
 
-##v0.6.3  
+##0.6.3  
 
-##v0.6.2
+##0.6.2
 
 Emergency fix in move_dir where the destination file was named after the linked file instead of the link name
 Downloads
 
 
-##v0.6.1
+##0.6.1
 Improve util and error handling
 Add function to retrieve project from LIMS API
 
-#v0.6
+#0.6
  
 This version adds the ability to cancel currently running cluster jobs in executor. Also fixes a bug in util.move_dir.
 
-##v0.5.1
+##0.5.1
 
 Minor version adding evenness
 
-#v0.5
+#0.5
 
 Executors have been fixed to process the output of sacct properly. Script writers have also been refactored/simplified.
 Downloads
 
-##v0.4.4
+##0.4.4
  
-##v0.4.3
+##0.4.3
 
 This version add the ability to Notify a log file, through email or over Asana tasks.
 It also adds new constant and allow the Configuration object to still work even when no config file is passed
 
-##v0.4.2  
+##0.4.2  
 
-##v0.4.1
+##0.4.1
 
 This version fixes a bug in `EnvConfiguration`, where it wasn't selecting a new environment properly. Two fields have also been added to `constants` for upcoming versions of Analysis-Driver and Reporting-App.
 
-#v0.4
+#0.4
 Bugs have been fixed in `clarity`, `ncbi` and `rest_communication`. There is also now a more flexible, object oriented `rest_communication`, where a `Communicator` object can be created with a base url and username-password or token authentication.
 
 
-##v0.3.1
+##0.3.1
 This adds a new field for Y-chromosome coverage to `constants`
 
-#v0.3
+#0.3
 This version is able to send authentication headers in `rest_communication` transactions. It now implements lazy loading of database connections and configs, so it is possible to, e.g, import rest_communication without importing ncbi, which requires sqlite3. It also allows egcg_core.config to switch its config file, allowing client apps to do, in `__init__.py`:
 
 ``` python
@@ -85,18 +85,18 @@ egcg_core.config.cfg.load_config_file('/path/to/a_config.yaml')
 ```
 
 
-##v0.2.4
+##0.2.4
 Since 0.2.1, this project now stores version information in __init__.__version__. A field for EdinburghGenomcis/EGCG-Project-Management has also been added to constants, and an executor bug has been fixed.
 
-##v0.2.3
+##0.2.3
 
-##v0.2.2
+##0.2.2
 
-##v0.2.1
+##0.2.1
 This version moves the deployment from distutils to setuptools, allowing automatic installation of subdependencies when EGCG-Core is installed as a requirement from another project.
 
-#v0.2
+#0.2
 This version adds functions to `util` specific to finding Fastqs, that previously lived in EdinburghGenomics/Analysis-Driver.
 
-#v0.1 
+#0.1 
 First version of the EGCG-Core package
