@@ -31,21 +31,19 @@ class TestArchiveManagement(TestEGCG):
         with patch('egcg_core.archive_management._get_stdout',
                    side_effect=[
                        'testfile: (0x00000009) exists archived, archive_id:1',
-                       'testfile: (0x00000009) exists archived, archive_id:1',
-                       ''
+                       '',
+                       'testfile: (0x0000000d) released exists archived, archive_id:1'
                    ]) as get_stdout:
             assert release_file_from_lustre('testfile')
             assert get_stdout.call_count == 3
-            assert get_stdout.call_args_list[2][0] == ('lfs hsm_release testfile',)
+            assert get_stdout.call_args_list[1][0] == ('lfs hsm_release testfile',)
 
         with patch('egcg_core.archive_management._get_stdout',
                    side_effect=[
                        'testfile: (0x0000000d) released exists archived, archive_id:1',
-                       'testfile: (0x0000000d) released exists archived, archive_id:1',
-                       ''
                    ]) as get_stdout:
             assert release_file_from_lustre('testfile')
-            assert get_stdout.call_count == 2
+            assert get_stdout.call_count == 1
 
         with patch('egcg_core.archive_management._get_stdout',
                    side_effect=[
@@ -86,12 +84,11 @@ class TestArchiveManagement(TestEGCG):
         with patch('egcg_core.archive_management._get_stdout',
                    side_effect=[
                        'testfile: (0x0000000d) released exists archived, archive_id:1',
-                       'testfile: (0x0000000d) released exists archived, archive_id:1',
                        '',
                    ]) as get_stdout:
             assert recall_from_tape('testfile')
-            assert get_stdout.call_count == 3
-            assert get_stdout.call_args_list[2][0] == ('lfs hsm_restore testfile',)
+            assert get_stdout.call_count == 2
+            assert get_stdout.call_args_list[1][0] == ('lfs hsm_restore testfile',)
 
 
     def test_archive_directory(self):
