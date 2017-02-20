@@ -18,7 +18,7 @@ def _translate_req(r):
         req += '(%s)' % version
     return req
 
-version = '0.6.6'
+version = '0.6.7'
 
 setup(
     name='EGCG-Core',
@@ -44,5 +44,7 @@ setup(
     keywords='EdingburghGenomics executor notification logging api rest',
     requires=[_translate_req(r) for r in requirements],  # metadata
     install_requires=requirements,  # actual module requirements
-    zip_safe=False
+    zip_safe=False,
+    author='Murray Wham',
+    author_email='murray.wham@ed.ac.uk'
 )
