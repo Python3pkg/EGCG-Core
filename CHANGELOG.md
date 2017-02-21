@@ -3,13 +3,13 @@ Changelog for EGCG-Core
 
 0.6.7 (Unreleased)
 ------------------
-First version to support release on Pypi
-Add support for dealing with lfs hsm_x command to manage the archive.
-Add get_genome_version in clarity functions
+ - First version to support release on Pypi
+ - Add support for dealing with lfs hsm_x command to manage the archive.
+ - Add get_genome_version in clarity functions
 
 0.6.5
 -----
-Fix `get_project`
+ - Fix `get_project`
 
 0.6.4
 -----
