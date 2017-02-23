@@ -44,30 +44,44 @@ def archive_states(file_path):
         raise ValueError()
 
 
-def is_register_for_archiving(file_path):
-    return 'exists' in archive_states(file_path)
+def is_of_state(state, file_path, known_states=None):
+    if known_states:
+        return state in known_states
+    else:
+        return state in archive_states(file_path)
 
 
-def is_archived(file_path):
-    return 'archived' in archive_states(file_path)
+def is_register_for_archiving(file_path, known_states=None):
+    return is_of_state('exists', file_path, known_states)
 
 
-def is_released(file_path):
-    return 'released' in archive_states(file_path)
+def is_archived(file_path, known_states=None):
+    return is_of_state('archived', file_path, known_states)
+
+
+def is_released(file_path, known_states=None):
+    return is_of_state('released', file_path, known_states)
+
+
+def is_dirty(file_path, known_states=None):
+    return is_of_state('dirty', file_path, known_states)
 
 
 def release_file_from_lustre(file_path):
-    if is_archived(file_path):
-        if not is_released(file_path):
-            cmd = 'lfs hsm_release %s' % file_path
-            val = _get_stdout(cmd)
-            if val is not None:
-                return True
-        else:
-            app_logger.debug('Trying to release a %s already released from lustre' % file_path)
-            return True
-    else:
+    # store the states to avoid quering multiple times
+    states = archive_states(file_path)
+    if is_dirty(file_path, states):
+        raise ArchivingError('File %s is in a dirty state' % file_path)
+    if not is_archived(file_path, states):
         raise ArchivingError('Cannot release %s from lustre because it is not archive to tape' % file_path)
+    if not is_released(file_path, states):
+        cmd = 'lfs hsm_release %s' % file_path
+        val = _get_stdout(cmd)
+        if val is not None:
+            return is_released(file_path)
+    else:
+        app_logger.debug('Trying to release a %s already released from lustre' % file_path)
+        return True
 
 
 def register_for_archiving(file_path):
@@ -81,7 +95,10 @@ def register_for_archiving(file_path):
 
 
 def recall_from_tape(file_path):
-    if is_archived(file_path) and is_released(file_path):
+    states = archive_states(file_path)
+    if is_dirty(file_path, states):
+        raise ArchivingError('File %s is in a dirty state' % file_path)
+    if is_archived(file_path, states) and is_released(file_path, states):
         cmd = 'lfs hsm_restore %s' % file_path
         val = _get_stdout(cmd)
         if val is not None:
