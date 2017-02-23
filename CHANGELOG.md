@@ -1,7 +1,7 @@
 Changelog for EGCG-Core
 ===========================
 
-0.6.7 (Unreleased)
+0.6.7 (2017-02-23)
 ------------------
  - First version to support release on Pypi
  - Add support for dealing with lfs hsm_x command to manage the archive.
