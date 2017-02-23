@@ -1,6 +1,12 @@
 Changelog for EGCG-Core
 ===========================
 
+0.6.8 (unreleased)
+------------------
+
+- Nothing changed yet.
+
+
 0.6.7 (2017-02-23)
 ------------------
  - First version to support release on Pypi
