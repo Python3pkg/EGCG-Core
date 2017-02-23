@@ -1,1 +1,4 @@
-__version__ = '0.6.6'
+import pkg_resources
+
+__version__ = pkg_resources.get_distribution("egcg_core").version
+
