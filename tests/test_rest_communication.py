@@ -4,8 +4,6 @@ from unittest.mock import patch
 from tests import FakeRestResponse, TestEGCG
 from egcg_core import rest_communication
 from egcg_core.exceptions import RestCommunicationError
-from egcg_core.config import cfg
-cfg.load_config_file(TestEGCG.etc_config)
 
 
 def rest_url(endpoint):
@@ -28,24 +26,9 @@ patched_response = patch(
 auth = ('a_user', 'a_password')
 
 
-def query_args_from_url(url):
-    query_string = url.split('?')[1]
-    d = {}
-    for q in query_string.split('&'):
-        k, v = q.split('=')
-        if v.startswith('{') and v.endswith('}'):
-            v = json.loads(v)
-        d[k] = v
-
-    return json.loads(json.dumps(d))
-
-
 class TestRestCommunication(TestEGCG):
     def setUp(self):
-        self.comm = rest_communication.Communicator()
-
-    def test_translate(self):
-        assert self.comm._translate('None') == 'null'
+        self.comm = rest_communication.Communicator(auth=auth, baseurl='http://localhost:4999/api/0.1')
 
     def test_api_url(self):
         assert self.comm.api_url('an_endpoint') == rest_url('an_endpoint')
@@ -151,6 +134,19 @@ class TestRestCommunication(TestEGCG):
             headers={'If-Match': 1234567},
             auth=auth,
             json={'list_to_update': ['this', 'that', 'other', 'another']}
+        )
+
+    @patch(ppath('get_document'), return_value=test_patch_document)
+    @patched_response
+    def test_auth_token_and_if_match(self, mocked_response, mocked_get_doc):
+        self.comm._auth = 'an_auth_token'
+
+        self.comm.patch_entry(test_endpoint, {'this': 'that'}, 'uid', 'a_unique_id')
+        mocked_response.assert_called_with(
+            'PATCH',
+            rest_url(test_endpoint) + '1337',
+            headers={'If-Match': 1234567, 'Authorization': 'Token an_auth_token'},
+            json={'this': 'that'}
         )
 
     def test_post_or_patch(self):

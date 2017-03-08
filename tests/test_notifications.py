@@ -7,8 +7,6 @@ from egcg_core.notifications import EmailNotification, AsanaNotification
 from egcg_core.exceptions import EGCGError
 from tests import TestEGCG
 
-patched_get = patch('egcg_core.rest_communication.get_documents', return_value=[{'run_id': 'test_dataset'}])
-
 
 class FakeSMTP(Mock):
     def __init__(self, host, port):
@@ -62,10 +60,15 @@ class TestEmailNotification(TestEGCG):
             email_template=join(dirname(dirname(abspath(__file__))), 'etc', 'email_notification.html')
         )
 
-    def test_retries(self):
+    @patch('egcg_core.notifications.EmailNotification._logger')
+    def test_retries(self, mocked_logger):
         with patch('smtplib.SMTP', new=FakeSMTP), patch('egcg_core.notifications.email.sleep'):
             assert self.email_ntf._try_send(self.email_ntf.preprocess('this is a test')) is True
             assert self.email_ntf._try_send(self.email_ntf.preprocess('dodgy')) is False
+            for i in range(3):
+                mocked_logger.warning.assert_any_call(
+                    'Encountered a %s exception. %s retries remaining', 'Oh noes!', i
+                )
 
             with pytest.raises(EGCGError) as e:
                 self.email_ntf.notify('dodgy')

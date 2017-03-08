@@ -103,7 +103,6 @@ class ClusterExecutor(AppLogger):
             sleep(5)
             attempt += 1
 
-
     def cancel_job(self):
         if not self._job_finished():
             self._cancel_job()

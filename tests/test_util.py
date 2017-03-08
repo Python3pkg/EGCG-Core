@@ -68,14 +68,6 @@ class TestMoveDir(TestEGCG):
             else:
                 of.write('This is a test file')
 
-    def _create_link(self, f, content=None):
-        os.symlink()
-        with open(f, 'w') as of:
-            if content:
-                of.write(content)
-            else:
-                of.write('This is a test file')
-
     def _md5(self, f):
         hash_md5 = hashlib.md5()
         with open(f, "rb") as f:

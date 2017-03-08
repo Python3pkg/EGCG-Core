@@ -7,8 +7,7 @@ from egcg_core.exceptions import RestCommunicationError
 
 
 class Communicator(AppLogger):
-    table = {'None': 'null'}
-    successful_statuses = (200, 201, 202)
+    successful_statuses = (200, 201, 202, 204)
 
     def __init__(self, auth=None, baseurl=None):
         self._baseurl = baseurl
@@ -33,12 +32,6 @@ class Communicator(AppLogger):
             self._auth = (cfg['rest_api']['username'], cfg['rest_api']['password'])
         return self._auth
 
-    @classmethod
-    def _translate(cls, s):
-        for k, v in cls.table.items():
-            s = s.replace(k, v)
-        return s
-
     def api_url(self, endpoint):
         return '{base_url}/{endpoint}/'.format(base_url=self.baseurl, endpoint=endpoint)
 
@@ -61,7 +54,7 @@ class Communicator(AppLogger):
             kwargs.update(auth=self.auth)
         elif type(self.auth) is str:
             # noinspection PyTypeChecker
-            kwargs.update(headers={'Authorization': 'Token ' + self.auth})
+            kwargs['headers'] = dict(kwargs.get('headers', {}), Authorization='Token ' + self.auth)
 
         r = requests.request(method, url, **kwargs)
 
@@ -124,13 +117,12 @@ class Communicator(AppLogger):
         """
         url = urljoin(self.api_url(endpoint), doc['_id'])
         _payload = dict(payload)
-        headers = {'If-Match': doc.get('_etag')}
         if update_lists:
             for l in update_lists:
                 content = doc.get(l, [])
                 new_content = [x for x in _payload.get(l, []) if x not in content]
                 _payload[l] = content + new_content
-        r = self._req('PATCH', url, headers=headers, json=_payload)
+        r = self._req('PATCH', url, headers={'If-Match': doc['_etag']}, json=_payload)
         return r.status_code in self.successful_statuses
 
     def patch_entry(self, endpoint, payload, id_field, element_id, update_lists=None):
