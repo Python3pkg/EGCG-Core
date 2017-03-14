@@ -39,6 +39,3 @@ class ArrayExecutor(StreamExecutor):
             raise EGCGError('Commands failed: ' + str(self.exit_statuses))
         self.info('Exit statuses: ' + str(self.exit_statuses))
         return sum(self.exit_statuses)
-
-    def _validate_file_paths(self):
-        pass
