@@ -1,6 +1,12 @@
 Changelog for EGCG-Core
 ===========================
 
+0.6.9 (unreleased)
+------------------
+
+- Nothing changed yet.
+
+
 0.6.8 (2017-03-15)
 ------------------
 - Added `DATASET_RESUME` to constants
