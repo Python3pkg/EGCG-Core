@@ -1,0 +1,11 @@
+include *.md
+include *.txt
+include *.yml
+include CHANGELOG
+recursive-include etc *.html
+recursive-include etc *.yaml
+recursive-include tests *.gz
+recursive-include tests *.log
+recursive-include tests *.py
+recursive-include tests *.sh
+recursive-include tests *.txt
