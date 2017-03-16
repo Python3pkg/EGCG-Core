@@ -161,7 +161,7 @@ class TestRestCommunication(TestEGCG):
         patched_get_none = patch(ppath('get_document'), return_value=None)
 
         with patched_get as mget, patched_patch as mpatch:
-            success = self.comm.post_or_patch(
+            self.comm.post_or_patch(
                 'an_endpoint',
                 [test_post_or_patch_payload],
                 id_field='uid',
@@ -174,15 +174,13 @@ class TestRestCommunication(TestEGCG):
                 test_post_or_patch_payload_no_uid,
                 ['list_to_update']
             )
-            assert success is True
 
         with patched_get_none as mget, patched_post as mpost:
-            success = self.comm.post_or_patch(
+            self.comm.post_or_patch(
                 'an_endpoint', [test_post_or_patch_payload], id_field='uid', update_lists=['list_to_update']
             )
             mget.assert_called_with('an_endpoint', where={'uid': '1337'})
             mpost.assert_called_with('an_endpoint', test_post_or_patch_payload)
-            assert success is True
 
     def test_token_auth(self):
         hashed_token = '{"some": "hashed"}.tokenauthentication'

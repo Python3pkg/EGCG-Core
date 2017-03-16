@@ -100,12 +100,10 @@ class Communicator(AppLogger):
             self.warning('No document found in endpoint %s for %s', endpoint, query_args)
 
     def post_entry(self, endpoint, payload):
-        r = self._req('POST', self.api_url(endpoint), json=payload)
-        return r.status_code in self.successful_statuses
+        return self._req('POST', self.api_url(endpoint), json=payload)
 
     def put_entry(self, endpoint, element_id, payload):
-        r = self._req('PUT', urljoin(self.api_url(endpoint), element_id), json=payload)
-        return r.status_code in self.successful_statuses
+        return self._req('PUT', urljoin(self.api_url(endpoint), element_id), json=payload)
 
     def _patch_entry(self, endpoint, doc, payload, update_lists=None):
         """
@@ -122,8 +120,7 @@ class Communicator(AppLogger):
                 content = doc.get(l, [])
                 new_content = [x for x in _payload.get(l, []) if x not in content]
                 _payload[l] = content + new_content
-        r = self._req('PATCH', url, headers={'If-Match': doc['_etag']}, json=_payload)
-        return r.status_code in self.successful_statuses
+        return self._req('PATCH', url, headers={'If-Match': doc['_etag']}, json=_payload)
 
     def patch_entry(self, endpoint, payload, id_field, element_id, update_lists=None):
         """
@@ -137,7 +134,6 @@ class Communicator(AppLogger):
         doc = self.get_document(endpoint, where={id_field: element_id})
         if doc:
             return self._patch_entry(endpoint, doc, payload, update_lists)
-        return False
 
     def patch_entries(self, endpoint, payload, update_lists=None, **query_args):
         """
@@ -149,16 +145,9 @@ class Communicator(AppLogger):
         """
         docs = self.get_documents(endpoint, **query_args)
         if docs:
-            success = True
-            nb_docs = 0
+            self.info('Updating %s docs matching %s', len(docs), query_args)
             for doc in docs:
-                if self._patch_entry(endpoint, doc, payload, update_lists):
-                    nb_docs += 1
-                else:
-                    success = False
-            self.info('Updated %s documents matching %s', nb_docs, query_args)
-            return success
-        return False
+                self._patch_entry(endpoint, doc, payload, update_lists)
 
     def post_or_patch(self, endpoint, input_json, id_field=None, update_lists=None):
         """
@@ -169,17 +158,14 @@ class Communicator(AppLogger):
         :param str id_field: The field to use as the unique ID for the endpoint.
         :param list update_lists:
         """
-        success = True
         for payload in input_json:
             _payload = dict(payload)
             doc = self.get_document(endpoint, where={id_field: _payload[id_field]})
             if doc:
                 _payload.pop(id_field)
-                s = self._patch_entry(endpoint, doc, _payload, update_lists)
+                self._patch_entry(endpoint, doc, _payload, update_lists)
             else:
-                s = self.post_entry(endpoint, _payload)
-            success = success and s
-        return success
+                self.post_entry(endpoint, _payload)
 
 
 default = Communicator()

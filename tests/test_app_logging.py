@@ -28,11 +28,11 @@ class TestLoggingConfiguration(TestEGCG):
         assert self.log_cfg.formatter is default
 
         assert self.log_cfg.handlers == set()
-        assert self.log_cfg.log_level == logging.INFO
+        assert self.log_cfg._log_level == logging.INFO
 
     def test_get_logger(self):
         l = self.log_cfg.get_logger('a_logger')
-        assert l.level == self.log_cfg.log_level
+        assert l.level == self.log_cfg._log_level
         assert l in self.log_cfg.loggers.values()
         assert list(self.log_cfg.handlers) == l.handlers
 
