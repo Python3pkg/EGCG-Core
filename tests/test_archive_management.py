@@ -90,7 +90,6 @@ class TestArchiveManagement(TestEGCG):
             assert get_stdout.call_count == 2
             assert get_stdout.call_args_list[1][0] == ('lfs hsm_restore testfile',)
 
-
     def test_archive_directory(self):
         with patch('egcg_core.archive_management.register_for_archiving') as register:
             assert archive_directory(os.path.join(self.assets_path, 'fastqs'))

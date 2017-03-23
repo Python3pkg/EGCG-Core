@@ -31,22 +31,22 @@ Changelog for EGCG-Core
 In Communicator.get_content, we used to build a url manually via `api_url` and pass it to `_req`. This was because we had to cast dicts to strings manually:
 
 ```python
-    where = {'this': 'that', 'other': None}
-    cast_where = '{"this":"that","other":null}'
+where = {'this': 'that', 'other': None}
+cast_where = '{"this":"that","other":null}'
 ```
 
 However, the removal of spaces that this involved meant that any query for a field containing a space resulted in a bad query:
 
 ```python
-    where = {'field_name': 'with spaces'}
-    cast_where = '{"field_name":"withspaces"}'
+where = {'field_name': 'with spaces'}
+cast_where = '{"field_name":"withspaces"}'
 ```
 
 To fix this, we now pass the query string through [params](http://docs.python-requests.org/en/master/user/quickstart/#passing-parameters-in-urls), and do Json serialisation on any dict params:
 
 ```python
-    params = {'page': 1, where: {'this': 'that', 'other': None}}
-    query_string = '?page=1&where={"this": "that", "other": null}'
+params = {'page': 1, 'where': {'this': 'that', 'other': None}}
+query_string = '?page=1&where={"this": "that", "other": null}'
 ```
 
 0.6.3  
