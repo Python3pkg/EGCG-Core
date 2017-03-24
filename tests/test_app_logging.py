@@ -2,6 +2,7 @@ import os
 import sys
 import logging
 import logging.handlers
+from unittest.mock import Mock
 from tests import TestEGCG
 from egcg_core import app_logging
 from egcg_core.config import cfg
@@ -27,11 +28,11 @@ class TestLoggingConfiguration(TestEGCG):
         assert self.log_cfg.formatter is default
 
         assert self.log_cfg.handlers == set()
-        assert self.log_cfg.log_level == logging.INFO
+        assert self.log_cfg._log_level == logging.INFO
 
     def test_get_logger(self):
         l = self.log_cfg.get_logger('a_logger')
-        assert l.level == self.log_cfg.log_level
+        assert l.level == self.log_cfg._log_level
         assert l in self.log_cfg.loggers.values()
         assert list(self.log_cfg.handlers) == l.handlers
 
@@ -74,23 +75,18 @@ class TestLoggingConfiguration(TestEGCG):
                 assert h.when == 'H' and h.interval == 3600  # casts 'h' to 'H' and multiplies when to seconds
 
 
-class TestAppLogger(app_logging.AppLogger, TestEGCG):
+class TestAppLogger(TestEGCG):
     def setUp(self):
-        self.log_cfg = app_logging.logging_default
-        app_logging.logging_default.add_stdout_handler(logging.DEBUG)
+        self.log_cfg = app_logging.LoggingConfiguration({})
+        self.app_logger = app_logging.AppLogger()
+        self.app_logger.log_cfg = self.log_cfg
 
     def tearDown(self):
-        app_logging.logging_default.handlers.clear()
-        app_logging.logging_default.add_stdout_handler(logging.DEBUG)
-
-    def test_log_msgs(self):
-        self.debug('Debug')
-        self.info('Info')
-        self.warning('Warning')
-        self.error('Error')
-        self.critical('Critical')
+        self.app_logger = None
+        self.log_cfg = None
 
     def test_get_logger(self):
-        logger = self.log_cfg.get_logger('test')
-        assert logger.level == self.log_cfg.log_level
-        assert list(self.log_cfg.handlers) == logger.handlers
+        self.log_cfg.get_logger = Mock()
+        self.app_logger.info('Things')
+        self.app_logger._logger.info.assert_called_with('Things')
+        self.log_cfg.get_logger.assert_called_with('AppLogger')
