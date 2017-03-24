@@ -1,11 +1,15 @@
 Changelog for EGCG-Core
 ===========================
 
-0.6.9 (unreleased)
+0.6.9 (2017-03-24)
 ------------------
 
-- Nothing changed yet.
-
+- Enforced the usage of `log_cfg.set_log_level()` rather than modifying `log_cfg.log_level`
+- More error reporting in archive_management
+- Removed unused Executor file path validation
+- Added 204 to Communicator.successful_statuses
+- Fixed a bug where `If-Match` was not passed to Communicator._req when using token auth
+- Updated `asana` to 0.6.2
 
 0.6.8 (2017-03-15)
 ------------------
