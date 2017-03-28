@@ -1,5 +1,5 @@
 import asana
-import cached_property
+from cached_property import cached_property
 
 from .notification import Notification
 

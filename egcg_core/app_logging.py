@@ -3,7 +3,7 @@ import logging
 import logging.config
 import logging.handlers
 
-import cached_property
+from cached_property import cached_property
 
 from egcg_core.config import cfg
 
@@ -81,7 +81,7 @@ class LoggingConfiguration:
         Set all handlers to use formatter
         :param logging.Formatter formatter:
         """
-        self._formatter = formatter
+        self.__dict__['formatter'] = formatter
         for h in self.handlers:
             h.setFormatter(self.formatter)
 
