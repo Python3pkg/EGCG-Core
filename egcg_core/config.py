@@ -8,9 +8,10 @@ class Configuration:
     config_file = None
     content = {}
 
-    def __init__(self, *search_path):
+    def __init__(self, *search_path, env_var=None):
         if search_path:
-            self.load_config_file(self._find_config_file(search_path))
+            self.load_config_file(*search_path, env_var=env_var)
+            self._select_env()
 
     @staticmethod
     def _find_config_file(search_path):
@@ -18,10 +19,12 @@ class Configuration:
             if p and isfile(p):
                 return p
 
-    def load_config_file(self, *search_path):
+    def load_config_file(self, *search_path, env_var=None):
+        self.env_var = env_var
         self.config_file = self._find_config_file(search_path)
         if self.config_file:
             self.content = yaml.safe_load(open(self.config_file, 'r'))
+            self._select_env()
         else:
             raise ConfigError('Could not find any config file in specified search path')
 
@@ -65,24 +68,17 @@ class Configuration:
         """Allow search in the first layer of the config with 'in' operator."""
         return self.content.__contains__(item)
 
-
-class EnvConfiguration(Configuration):
-    def __init__(self, *search_path, env_var='EGCGENV'):
-        self.env_var = env_var
-        super().__init__(*search_path)
-
-    def load_config_file(self, *search_path, env_var=None):
-        if env_var is not None:
-            self.env_var = env_var
-        super().load_config_file(*search_path)
-        self._select_env()
-
     def _select_env(self):
-        if not self.content.get('default'):
-            raise ConfigError("Could not find 'default' environment in " + self.config_file)
-        elif self.content:
-            env = getenv(self.env_var, 'default')
-            self.content = dict(self._merge_dicts(self.content['default'], self.content[env]))
+        # for backward compatibility keep merging the default section in the top level
+        if 'default' in self.content:
+            self.content = dict(self._merge_dicts(self.content, self.content['default']))
+            self.content.pop('default')
+
+        if self.env_var:
+            env = getenv(self.env_var)
+            if env and env in self.content:
+                self.content = dict(self._merge_dicts(self.content, self.content[env]))
+                self.content.pop(env)
 
     @classmethod
     def _merge_dicts(cls, default_dict, override_dict):
@@ -105,4 +101,8 @@ class EnvConfiguration(Configuration):
         """
         self.content = dict(self._merge_dicts(self.content, override_dict))
 
-cfg = EnvConfiguration()
+class EnvConfiguration(Configuration):
+    '''For backward compatibility'''
+    pass
+
+cfg = Configuration()

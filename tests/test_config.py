@@ -29,37 +29,26 @@ class TestConfiguration(TestEGCG):
             self.cfg.load_config_file(non_existing_cfg_file)
             assert str(e) == 'Could not find any config file in specified search path'
 
-    def test_get(self):
-        assert self.cfg.get('nonexistent_thing') is None
-        assert self.cfg.get('nonexistent_thing', 'a_default') == 'a_default'
-        assert self.cfg.get('default').get('executor').get('job_execution') == 'local'
-
-    def test_query(self):
-        assert self.cfg.query('default', 'executor', 'job_execution') == 'local'
-        assert self.cfg.query('default', 'nonexistent_thing') is None
-
-    def test_contains(self):
-        assert 'default' in self.cfg
-
-
-class TestEnvConfiguration(TestConfiguration):
-    def setUp(self):
-        self.cfg = EnvConfiguration(self.etc_config)
-
-    def test_get(self):
-        assert self.cfg.get('executor').get('job_execution') == 'local'
-
-    def test_query(self):
-        assert self.cfg.query('logging', 'handlers', 'nonexistent_handler') is None
-        assert self.cfg.query('logging', 'datefmt') == '%Y-%b-%d %H:%M:%S'
-
-    def test_load_config_file(self):
+    def test_load_config_file_with_env(self):
         expected_content = self.cfg.content
         self.cfg.content = {}
         environ['TESTENV'] = 'another_env'
         self.cfg.load_config_file(self.etc_config, env_var='TESTENV')
         expected_content['ncbi_cache'] = 'path/to/ncbi.sqlite'
+        expected_content.pop('another_env')
         assert self.cfg.content == expected_content
+
+    def test_get(self):
+        assert self.cfg.get('nonexistent_thing') is None
+        assert self.cfg.get('nonexistent_thing', 'a_default') == 'a_default'
+        assert self.cfg.get('executor').get('job_execution') == 'local'
+
+    def test_query(self):
+        assert self.cfg.query('executor', 'job_execution') == 'local'
+        assert self.cfg.query('nonexistent_thing') is None
+        assert self.cfg.query('logging', 'handlers', 'nonexistent_handler') is None
+        assert self.cfg.query('logging', 'datefmt') == '%Y-%b-%d %H:%M:%S'
+
 
     def test_merge_dicts(self):
         default_dict = {
