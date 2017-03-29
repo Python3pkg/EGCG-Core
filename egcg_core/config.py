@@ -101,8 +101,8 @@ class Configuration:
         """
         self.content = dict(self._merge_dicts(self.content, override_dict))
 
-class EnvConfiguration(Configuration):
-    '''For backward compatibility'''
-    pass
+
+#For backward compatibility
+EnvConfiguration = Configuration
 
 cfg = Configuration()
