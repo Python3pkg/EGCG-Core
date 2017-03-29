@@ -19,7 +19,7 @@ class LoggingConfiguration:
         self.blank_formatter = logging.Formatter()
         self.handlers = set()
         self.loggers = {}
-        self.log_level = logging.INFO
+        self._log_level = logging.INFO
 
     @cached_property
     def formatter(self):
@@ -32,7 +32,7 @@ class LoggingConfiguration:
             datefmt=self.cfg.get('datefmt', self.default_datefmt)
         )
 
-    def get_logger(self, name, level=None):
+    def get_logger(self, name, level=logging.NOTSET):
         """
         Return a logging.Logger object with formatters and handlers added.
         :param name: Name to assign to the logger (usually __name__)
@@ -44,9 +44,7 @@ class LoggingConfiguration:
             logger = logging.getLogger(name)
             self.loggers[name] = logger
 
-        if level is None:
-            level = self.log_level
-        logger.setLevel(level)
+        logger.setLevel(level or self._log_level)
         for h in self.handlers:
             logger.addHandler(h)
 
@@ -58,9 +56,7 @@ class LoggingConfiguration:
         :param logging.Handler handler:
         :param int level: Log level to assign to the created handler
         """
-        if level == logging.NOTSET:
-            level = self.log_level
-        handler.setLevel(level)
+        handler.setLevel(level or self._log_level)
         handler.setFormatter(self.formatter)
         for name in self.loggers:
             self.loggers[name].addHandler(handler)
@@ -70,11 +66,11 @@ class LoggingConfiguration:
         self.add_handler(logging.StreamHandler(stdout), level=level)
 
     def set_log_level(self, level):
-        self.log_level = level
+        self._log_level = level
         for h in self.handlers:
-            h.setLevel(self.log_level)
+            h.setLevel(self._log_level)
         for name in self.loggers:
-            self.loggers[name].setLevel(self.log_level)
+            self.loggers[name].setLevel(self._log_level)
 
     def set_formatter(self, formatter):
         """
@@ -95,7 +91,7 @@ class LoggingConfiguration:
 
         for handler_type in handler_classes:
             for handler_cfg in self.cfg.get(handler_type, []):
-                level = logging.getLevelName(handler_cfg.pop('level', self.log_level))
+                level = logging.getLevelName(handler_cfg.pop('level', self._log_level))
 
                 if 'stream' in handler_cfg:
                     handler_cfg['stream'] = configurator.convert(handler_cfg['stream'])

@@ -4,6 +4,7 @@ from egcg_core import clarity
 from tests import TestEGCG
 
 clarity._lims = Mock()
+clarity.app_logger = Mock()
 
 
 def patched(path, **kwargs):
@@ -79,6 +80,7 @@ def test_find_project_from_sample():
         project_name = clarity.find_project_name_from_sample('a_sample')
         mocked_get_samples.assert_called_with('a_sample')
         assert project_name is None
+        clarity.app_logger.error.assert_called_with('%s projects found for sample %s', 2, 'a_sample')
 
     with patched_clarity('get_samples', fake_samples[0:1]):
         assert clarity.find_project_name_from_sample('a_sample') == 'this'
@@ -271,3 +273,6 @@ def test_get_sample_release_date(mocked_get_procs, mocked_get_sample):
     mocked_get_sample.reset_mock()
 
     assert clarity.get_sample_release_date('a_sample_name2') == 'a_older_date_run'
+    clarity.app_logger.warning.assert_called_with(
+        '%s Processes found for sample %s: Return latest one', 2, 'a_sample_name2'
+    )

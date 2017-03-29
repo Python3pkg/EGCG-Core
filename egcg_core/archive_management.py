@@ -1,8 +1,6 @@
-import subprocess
-import re
-
 import os
-
+import re
+import subprocess
 from egcg_core.app_logging import logging_default as log_cfg
 from egcg_core.exceptions import EGCGError
 
@@ -18,10 +16,12 @@ def _get_stdout(cmd):
     p = subprocess.Popen(cmd.split(' '), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     exit_status = p.wait()
     o, e = p.stdout.read(), p.stderr.read()
-    app_logger.debug('%s -> (%s, %s, %s)', cmd, exit_status, o, e)
+    msg = '%s -> (%s, %s, %s)' % (cmd, exit_status, o, e)
     if exit_status:
+        app_logger.error(msg)
         return None
     else:
+        app_logger.debug(msg)
         return o.decode('utf-8').strip()
 
 
@@ -32,7 +32,6 @@ def archive_states(file_path):
     if match:
         file_name = match.group(1)
         assert file_name == file_path
-        flag = match.group(2)
         state_and_id = match.group(3)
         if state_and_id:
             state, archive_id = state_and_id.split(',')
@@ -106,7 +105,7 @@ def recall_from_tape(file_path):
 
 
 def archive_directory(directory):
-    '''Recursively archive all the files in a directory'''
+    """Recursively archive all the files in a directory"""
     success = True
     for f in os.listdir(directory):
         fp = os.path.join(directory, f)

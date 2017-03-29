@@ -1,11 +1,25 @@
 Changelog for EGCG-Core
 ===========================
 
-0.6.8 (unreleased)
-------------------
+0.6.10 (unreleased)
+-------------------
 
 - Nothing changed yet.
 
+
+0.6.9 (2017-03-24)
+------------------
+
+- Enforced the usage of `log_cfg.set_log_level()` rather than modifying `log_cfg.log_level`
+- More error reporting in archive_management
+- Removed unused Executor file path validation
+- Added 204 to Communicator.successful_statuses
+- Fixed a bug where `If-Match` was not passed to Communicator._req when using token auth
+- Updated `asana` to 0.6.2
+
+0.6.8 (2017-03-15)
+------------------
+- Added `DATASET_RESUME` to constants
 
 0.6.7 (2017-02-23)
 ------------------
@@ -27,22 +41,22 @@ Changelog for EGCG-Core
 In Communicator.get_content, we used to build a url manually via `api_url` and pass it to `_req`. This was because we had to cast dicts to strings manually:
 
 ```python
-    where = {'this': 'that', 'other': None}
-    cast_where = '{"this":"that","other":null}'
+where = {'this': 'that', 'other': None}
+cast_where = '{"this":"that","other":null}'
 ```
 
 However, the removal of spaces that this involved meant that any query for a field containing a space resulted in a bad query:
 
 ```python
-    where = {'field_name': 'with spaces'}
-    cast_where = '{"field_name":"withspaces"}'
+where = {'field_name': 'with spaces'}
+cast_where = '{"field_name":"withspaces"}'
 ```
 
 To fix this, we now pass the query string through [params](http://docs.python-requests.org/en/master/user/quickstart/#passing-parameters-in-urls), and do Json serialisation on any dict params:
 
 ```python
-    params = {'page': 1, where: {'this': 'that', 'other': None}}
-    query_string = '?page=1&where={"this": "that", "other": null}'
+params = {'page': 1, 'where': {'this': 'that', 'other': None}}
+query_string = '?page=1&where={"this": "that", "other": null}'
 ```
 
 0.6.3  

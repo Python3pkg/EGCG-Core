@@ -1,5 +1,4 @@
 import subprocess
-import os.path
 import shlex
 from egcg_core.app_logging import AppLogger
 from egcg_core.exceptions import EGCGError
@@ -8,7 +7,6 @@ from egcg_core.exceptions import EGCGError
 class Executor(AppLogger):
     def __init__(self, cmd):
         self.cmd = cmd
-        self._validate_file_paths()
         self.proc = None
 
     def join(self):
@@ -40,8 +38,3 @@ class Executor(AppLogger):
         # TODO: explore how to run commands with Bash constructs , e.g. 'command <(sub command)'
         self.proc = subprocess.Popen(shlex.split(self.cmd), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         return self.proc
-
-    def _validate_file_paths(self):
-        for arg in self.cmd.split(' '):
-            if arg.startswith('/') and not os.path.exists(arg):
-                self.debug('Could not find file: ' + arg + '. Will the executed command create it?')

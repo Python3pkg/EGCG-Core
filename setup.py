@@ -7,18 +7,18 @@ requirements = [l.strip() for l in open(requirements_txt) if l and not l.startsw
 def _translate_req(r):
     # this>=0.3.2 -> this(>=0.3.2)
     ops = ('<=', '>=', '==', '<', '>', '!=')
-    version = None
+    _version = None
     for op in ops:
         if op in r:
-            r, version = r.split(op)
-            version = op + version
+            r, _version = r.split(op)
+            _version = op + _version
 
     req = r
-    if version:
-        req += '(%s)' % version
+    if _version:
+        req += '(%s)' % _version
     return req
 
-version = '0.6.8.dev0'
+version = '0.6.10.dev0'
 
 setup(
     name='EGCG-Core',

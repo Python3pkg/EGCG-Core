@@ -4,8 +4,6 @@ from unittest.mock import patch
 from tests import FakeRestResponse, TestEGCG
 from egcg_core import rest_communication
 from egcg_core.exceptions import RestCommunicationError
-from egcg_core.config import cfg
-cfg.load_config_file(TestEGCG.etc_config)
 
 
 def rest_url(endpoint):
@@ -28,24 +26,9 @@ patched_response = patch(
 auth = ('a_user', 'a_password')
 
 
-def query_args_from_url(url):
-    query_string = url.split('?')[1]
-    d = {}
-    for q in query_string.split('&'):
-        k, v = q.split('=')
-        if v.startswith('{') and v.endswith('}'):
-            v = json.loads(v)
-        d[k] = v
-
-    return json.loads(json.dumps(d))
-
-
 class TestRestCommunication(TestEGCG):
     def setUp(self):
-        self.comm = rest_communication.Communicator()
-
-    def test_translate(self):
-        assert self.comm._translate('None') == 'null'
+        self.comm = rest_communication.Communicator(auth=auth, baseurl='http://localhost:4999/api/0.1')
 
     def test_api_url(self):
         assert self.comm.api_url('an_endpoint') == rest_url('an_endpoint')
@@ -153,6 +136,19 @@ class TestRestCommunication(TestEGCG):
             json={'list_to_update': ['this', 'that', 'other', 'another']}
         )
 
+    @patch(ppath('get_document'), return_value=test_patch_document)
+    @patched_response
+    def test_auth_token_and_if_match(self, mocked_response, mocked_get_doc):
+        self.comm._auth = 'an_auth_token'
+
+        self.comm.patch_entry(test_endpoint, {'this': 'that'}, 'uid', 'a_unique_id')
+        mocked_response.assert_called_with(
+            'PATCH',
+            rest_url(test_endpoint) + '1337',
+            headers={'If-Match': 1234567, 'Authorization': 'Token an_auth_token'},
+            json={'this': 'that'}
+        )
+
     def test_post_or_patch(self):
         test_post_or_patch_payload = {'uid': '1337', 'list_to_update': ['more'], 'another_field': 'that'}
         test_post_or_patch_payload_no_uid = {'list_to_update': ['more'], 'another_field': 'that'}
@@ -165,7 +161,7 @@ class TestRestCommunication(TestEGCG):
         patched_get_none = patch(ppath('get_document'), return_value=None)
 
         with patched_get as mget, patched_patch as mpatch:
-            success = self.comm.post_or_patch(
+            self.comm.post_or_patch(
                 'an_endpoint',
                 [test_post_or_patch_payload],
                 id_field='uid',
@@ -178,15 +174,13 @@ class TestRestCommunication(TestEGCG):
                 test_post_or_patch_payload_no_uid,
                 ['list_to_update']
             )
-            assert success is True
 
         with patched_get_none as mget, patched_post as mpost:
-            success = self.comm.post_or_patch(
+            self.comm.post_or_patch(
                 'an_endpoint', [test_post_or_patch_payload], id_field='uid', update_lists=['list_to_update']
             )
             mget.assert_called_with('an_endpoint', where={'uid': '1337'})
             mpost.assert_called_with('an_endpoint', test_post_or_patch_payload)
-            assert success is True
 
     def test_token_auth(self):
         hashed_token = '{"some": "hashed"}.tokenauthentication'
