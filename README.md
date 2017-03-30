@@ -1,4 +1,4 @@
-# EGCG-Core
+EGCG-Core
 ===========
 [![PyPI](https://img.shields.io/pypi/v/EGCG-Core.svg)](https://pypi.python.org/pypi/EGCG-Core)
 [![PyPI](https://img.shields.io/pypi/pyversions/EGCG-Core.svg)](https://pypi.python.org/pypi/EGCG-Core)
@@ -9,7 +9,7 @@ This is a core module for Edinburgh Genomics' clinical processing. It contains c
 EGCG's various projects, including logging, configuration, exceptions and random utility functions. There are
 also modules for interfacing with EGCG\'s reporting app and Clarity LIMS instance.
 
-## Modules
+Modules
 ----------
 
 ### executor
