@@ -14,7 +14,7 @@ class AsanaNotification(Notification):
         if task_description:
             self.task_template['notes'] = task_description
 
-    def _notify(self, msg):
+    def notify(self, msg):
         self.client.tasks.add_comment(self.task['id'], text=msg)
         self.client.tasks.update(self.task['id'], completed=False)
 
