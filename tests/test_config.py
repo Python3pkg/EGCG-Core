@@ -2,12 +2,26 @@ from os import environ
 from os.path import join
 import pytest
 from tests import TestEGCG
-from egcg_core.config import Configuration, EnvConfiguration, ConfigError
+from egcg_core.config import Configuration, ConfigError
 
 
 class TestConfiguration(TestEGCG):
     def setUp(self):
         self.cfg = Configuration(self.etc_config)
+        self.cfg2 = Configuration()
+
+    def test_delayed_load(self):
+        cfg2 = Configuration()
+        assert cfg2.get('ncbi_cache') is None
+        cfg2.load_config_file(self.etc_config)
+        assert cfg2.get('ncbi_cache') == ':memory:'
+
+    def test_delayed_load_with_env(self):
+        cfg2 = Configuration(env_var='TESTENV')
+        environ['TESTENV'] = 'another_env'
+        assert cfg2.get('ncbi_cache') is None
+        cfg2.load_config_file(self.etc_config)
+        assert cfg2.get('ncbi_cache') == 'path/to/ncbi.sqlite'
 
     def test_find_config_file(self):
         existing_cfg_file = self.etc_config
@@ -48,7 +62,6 @@ class TestConfiguration(TestEGCG):
         assert self.cfg.query('nonexistent_thing') is None
         assert self.cfg.query('logging', 'handlers', 'nonexistent_handler') is None
         assert self.cfg.query('logging', 'datefmt') == '%Y-%b-%d %H:%M:%S'
-
 
     def test_merge_dicts(self):
         default_dict = {

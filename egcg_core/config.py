@@ -9,6 +9,9 @@ class Configuration:
     content = {}
 
     def __init__(self, *search_path, env_var=None):
+        self.env_var = env_var
+        self.config_file = None
+        self.content = {}
         if search_path:
             self.load_config_file(*search_path, env_var=env_var)
             self._select_env()
@@ -20,7 +23,8 @@ class Configuration:
                 return p
 
     def load_config_file(self, *search_path, env_var=None):
-        self.env_var = env_var
+        if env_var:
+            self.env_var = env_var
         self.config_file = self._find_config_file(search_path)
         if self.config_file:
             self.content = yaml.safe_load(open(self.config_file, 'r'))
@@ -102,7 +106,7 @@ class Configuration:
         self.content = dict(self._merge_dicts(self.content, override_dict))
 
 
-#For backward compatibility
+# For backward compatibility
 EnvConfiguration = Configuration
 
 cfg = Configuration()
