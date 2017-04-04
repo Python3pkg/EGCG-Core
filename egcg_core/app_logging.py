@@ -2,6 +2,9 @@ from sys import stdout
 import logging
 import logging.config
 import logging.handlers
+
+from cached_property import cached_property
+
 from egcg_core.config import cfg
 
 
@@ -10,8 +13,6 @@ class LoggingConfiguration:
 
     default_fmt = '[%(asctime)s][%(name)s][%(levelname)s] %(message)s'
     default_datefmt = '%Y-%b-%d %H:%M:%S'
-    _formatter = None
-    _default_formatter = None
 
     def __init__(self, config):
         self.cfg = config
@@ -20,20 +21,16 @@ class LoggingConfiguration:
         self.loggers = {}
         self._log_level = logging.INFO
 
-    @property
+    @cached_property
     def formatter(self):
-        if self._formatter is None:
-            self._formatter = self.default_formatter
-        return self._formatter
+        return self.default_formatter
 
-    @property
+    @cached_property
     def default_formatter(self):
-        if self._default_formatter is None:
-            self._default_formatter = logging.Formatter(
-                fmt=self.cfg.get('format', self.default_fmt),
-                datefmt=self.cfg.get('datefmt', self.default_datefmt)
-            )
-        return self._default_formatter
+        return logging.Formatter(
+            fmt=self.cfg.get('format', self.default_fmt),
+            datefmt=self.cfg.get('datefmt', self.default_datefmt)
+        )
 
     def get_logger(self, name, level=logging.NOTSET):
         """
@@ -80,7 +77,7 @@ class LoggingConfiguration:
         Set all handlers to use formatter
         :param logging.Formatter formatter:
         """
-        self._formatter = formatter
+        self.__dict__['formatter'] = formatter
         for h in self.handlers:
             h.setFormatter(self.formatter)
 
@@ -111,7 +108,6 @@ class AppLogger:
     logging.Logger object and exposes its log methods.
     """
     log_cfg = logging_default
-    __logger = None
 
     def debug(self, msg, *args):
         self._logger.debug(msg, *args)
@@ -128,8 +124,7 @@ class AppLogger:
     def critical(self, msg, *args):
         self._logger.critical(msg, *args)
 
-    @property
+    @cached_property
     def _logger(self):
-        if self.__logger is None:
-            self.__logger = self.log_cfg.get_logger(self.__class__.__name__)
-        return self.__logger
+        return self.log_cfg.get_logger(self.__class__.__name__)
+

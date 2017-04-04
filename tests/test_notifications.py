@@ -92,7 +92,6 @@ class TestAsanaNotification(TestEGCG):
         )
 
     def test_task(self):
-        assert self.ntf._task is None
         assert self.ntf.task == {'id': 1337, 'name': 'this'}
         self.ntf.client.tasks.find_by_id.assert_called_with(1337)
 
