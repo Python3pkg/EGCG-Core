@@ -3,7 +3,7 @@ import pytest
 from unittest.mock import Mock, patch
 from smtplib import SMTPException
 from email.mime.text import MIMEText
-from egcg_core.notifications import NotificationCentre, Emailer, AsanaNotification
+from egcg_core.notifications import NotificationCentre, EmailNotification, send_email, AsanaNotification
 from egcg_core.exceptions import EGCGError
 from tests import TestEGCG
 
@@ -31,11 +31,11 @@ class TestNotificationCentre(TestEGCG):
 
     def test_config_init(self):
         e = self.notification_centre.subscribers['email']
-        assert e.emailer.sender == 'this'
-        assert e.emailer.recipients == ['that', 'other']
-        assert e.emailer.mailhost == 'localhost'
-        assert e.emailer.port == 1337
-        assert e.emailer.strict is True
+        assert e.sender == 'this'
+        assert e.recipients == ['that', 'other']
+        assert e.mailhost == 'localhost'
+        assert e.port == 1337
+        assert e.strict is True
 
         a = self.notification_centre.subscribers['asana']
         assert a.workspace_id == 1337
@@ -48,26 +48,25 @@ class TestNotificationCentre(TestEGCG):
             s.notify.assert_called_with('a message')
 
 
-class TestEmailSender(TestEGCG):
+class TestEmailNotification(TestEGCG):
     def setUp(self):
-        self.emailer = Emailer(
-            'localhost', 1337, 'a_sender', ['some', 'recipients'], 'a_subject',
-            email_template=join(dirname(dirname(abspath(__file__))), 'etc', 'email_notification.html'),
-            strict=True
+        self.ntf = EmailNotification(
+            'a_subject', 'localhost', 1337, 'a_sender', ['some', 'recipients'], strict=True,
+            email_template=join(dirname(dirname(abspath(__file__))), 'etc', 'email_notification.html')
         )
 
-    @patch('egcg_core.notifications.Emailer._logger')
+    @patch('egcg_core.notifications.EmailNotification._logger')
     def test_retries(self, mocked_logger):
         with patch('smtplib.SMTP', new=FakeSMTP), patch('egcg_core.notifications.email.sleep'):
-            assert self.emailer._try_send(self.emailer.build_email('this is a test')) is True
-            assert self.emailer._try_send(self.emailer.build_email('dodgy')) is False
+            assert self.ntf._try_send(self.ntf.build_email('this is a test')) is True
+            assert self.ntf._try_send(self.ntf.build_email('dodgy')) is False
             for i in range(3):
                 mocked_logger.warning.assert_any_call(
                     'Encountered a %s exception. %s retries remaining', 'Oh noes!', i
                 )
 
             with pytest.raises(EGCGError) as e:
-                self.emailer.send_msg('dodgy')
+                self.ntf.notify('dodgy')
                 assert 'Failed to send message: dodgy' in str(e)
 
     def test_build_email(self):
@@ -84,27 +83,37 @@ class TestEmailSender(TestEGCG):
             '    </style>\n'
             '</head>\n'
             '<body>\n'
-            '    <h2>another_subject</h2>\n'
+            '    <h2>a_subject</h2>\n'
             '    <p>a&nbspmessage</p>\n'
             '</body>\n'
             '</html>'
         )
 
         exp = MIMEText(exp_msg, 'html')
-        exp['Subject'] = 'another_subject'
+        exp['Subject'] = 'a_subject'
         exp['From'] = 'a_sender'
         exp['To'] = 'some, recipients'
-        obs = self.emailer.build_email('a message', 'another_subject')
+        obs = self.ntf.build_email('a message')
         assert str(obs) == str(exp)
 
     def test_build_email_plain_text(self):
-        self.emailer.email_template = None
+        self.ntf.email_template = None
         exp = MIMEText('a message')
-        exp['Subject'] = 'another_subject'
+        exp['Subject'] = 'a_subject'
         exp['From'] = 'a_sender'
         exp['To'] = 'some, recipients'
-        obs = self.emailer.build_email('a message', 'another_subject')
+        obs = self.ntf.build_email('a message')
         assert str(obs) == str(exp)
+
+
+@patch('egcg_core.notifications.EmailNotification._try_send')
+def test_send_email(mocked_send):
+    send_email('a message', 'localhost', 1337, 'a_sender', ['some', 'recipients'], 'a subject')
+    exp = MIMEText('a message')
+    exp['Subject'] = 'a subject'
+    exp['From'] = 'a_sender'
+    exp['To'] = 'some, recipients'
+    assert str(mocked_send.call_args[0][0]) == str(exp)
 
 
 class TestAsanaNotification(TestEGCG):

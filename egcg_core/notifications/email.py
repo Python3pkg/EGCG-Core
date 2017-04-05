@@ -3,24 +3,23 @@ import smtplib
 from time import sleep
 from email.mime.text import MIMEText
 from egcg_core.exceptions import EGCGError
-from egcg_core.app_logging import AppLogger
 from .notification import Notification
 
 
-class Emailer(AppLogger):
+class EmailNotification(Notification):
     translation_map = {' ': '&nbsp', '\n': '<br/>'}
 
-    def __init__(self, mailhost, port, sender, recipients, default_subject, email_template=None, strict=False):
+    def __init__(self, name, mailhost, port, sender, recipients, strict=False, email_template=None):
+        super().__init__(name)
         self.mailhost = mailhost
         self.port = port
         self.sender = sender
         self.recipients = recipients
-        self.default_subject = default_subject
         self.email_template = email_template
         self.strict = strict
 
-    def send_msg(self, msg, subject=None):
-        email = self.build_email(msg, subject)
+    def notify(self, msg):
+        email = self.build_email(msg)
         success = self._try_send(email)
         if not success:
             err_msg = 'Failed to send message: ' + str(msg)
@@ -47,19 +46,18 @@ class Emailer(AppLogger):
 
             return False
 
-    def build_email(self, body, subject=None):
+    def build_email(self, body):
         """
         Use Jinja to build a MIMEText html-formatted email from plain text.
         :param str body: The main body of the email to send
-        :param str subject: Custom email subject line (default is self.default_subject)
         """
         if self.email_template:
             content = jinja2.Template(open(self.email_template).read())
-            msg = MIMEText(content.render(title=subject, body=self._prepare_string(body)), 'html')
+            msg = MIMEText(content.render(title=self.name, body=self._prepare_string(body)), 'html')
         else:
             msg = MIMEText(body)
 
-        msg['Subject'] = subject or self.default_subject
+        msg['Subject'] = self.name
         msg['From'] = self.sender
         msg['To'] = ', '.join(self.recipients)
         return msg
@@ -76,10 +74,5 @@ class Emailer(AppLogger):
         connection.quit()
 
 
-class EmailNotification(Notification):
-    def __init__(self, name, mailhost, port, sender, recipients, email_template=None, strict=False):
-        super().__init__(name)
-        self.emailer = Emailer(mailhost, port, sender, recipients, name, email_template, strict)
-
-    def notify(self, msg):
-        self.emailer.send_msg(msg)
+def send_email(msg, mailhost, port, sender, recipients, subject, email_template=None, strict=False):
+    EmailNotification(subject, mailhost, port, sender, recipients, email_template, strict).notify(msg)
