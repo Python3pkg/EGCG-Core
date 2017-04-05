@@ -89,7 +89,7 @@ Contains config classes able to scan possible file locations for Yaml config fil
 it into a Python dict contained in `self.content`.
 
 #### Configuration
-Base config class. Implements `__getitem__` for dict-style square bracket querying; `__contains__` to allow
+Config class. Implements `__getitem__` for dict-style square bracket querying; `__contains__` to allow
 the use of, e.g, `if x in cfg`; `get` as in `dict.get`; and `query` for drilling down into the dict, returning
 `None` if nothing is found.
 
@@ -98,8 +98,7 @@ search for config files in multiple possible locations, e.g. in the user's home 
 environment variable. The first config file found gets used.
 
 
-#### EnvConfiguration
-Read config files containing multiple environments. For example:
+It can also read config files containing multiple environments. For example:
 
 ```
 default:
@@ -114,11 +113,13 @@ production:
     this: 1338
     that: 4
 ```
-Upon construction, the class reads an environment variable telling it which environment to use. It then loads
-the relevant environment and merges it with the `default` environment. For example, an EnvConfiguration set to
-'testing' will have `{'this': 1337, 'that': 2, 'other': 3}` in `self.content` and one set to 'production' will
-have `{'this': 1338, 'that': 4, 'other': 3}`.
+Upon construction, or loading of a new config file, the class can read an environment variable telling it which 
+environment to use. It merges the `default` environment if it exists and the specified environment if it exists
+For example, a Configuration set to 'testing' will have `{'this': 1337, 'that': 2, 'other': 3}` in `self.content` 
+and one set to 'production' will have `{'this': 1338, 'that': 4, 'other': 3}`.
 
+#### EnvConfiguration
+This class is an alias for Configuration for backward compatibility
 
 ### constants
 Contains constants used in EGCG's reporting app. Includes dataset statuses and database keys/column names.
