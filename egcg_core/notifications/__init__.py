@@ -1,7 +1,7 @@
 from egcg_core.app_logging import AppLogger
 from egcg_core.config import cfg
 from .asana import AsanaNotification
-from .email import EmailNotification
+from .email import EmailNotification, send_email
 from .log import LogNotification
 
 

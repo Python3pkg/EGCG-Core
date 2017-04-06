@@ -17,5 +17,5 @@ class LogNotification(Notification):
         handler.setLevel(logging.INFO)
         self._logger.addHandler(handler)
 
-    def _notify(self, msg):
+    def notify(self, msg):
         self.info(msg)

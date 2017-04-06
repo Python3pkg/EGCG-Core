@@ -15,14 +15,15 @@ class EmailNotification(Notification):
         self.port = port
         self.sender = sender
         self.recipients = recipients
-        self.strict = strict
         self.email_template = email_template
+        self.strict = strict
 
-    def _notify(self, msg):
-        mail_success = self._try_send(msg)
-        if not mail_success:
+    def notify(self, msg):
+        email = self.build_email(msg)
+        success = self._try_send(email)
+        if not success:
             err_msg = 'Failed to send message: ' + str(msg)
-            if self.strict is True:
+            if self.strict:
                 raise EGCGError(err_msg)
             else:
                 self.critical(err_msg)
@@ -42,19 +43,23 @@ class EmailNotification(Notification):
             if retries:
                 sleep(2)
                 return self._try_send(msg, retries)
-            else:
-                return False
 
-    def preprocess(self, body):
+            return False
+
+    def build_email(self, body):
         """
         Use Jinja to build a MIMEText html-formatted email from plain text.
         :param str body: The main body of the email to send
         """
-        content = jinja2.Template(open(self.email_template).read())
-        msg = MIMEText(content.render(title=self.name, body=self._prepare_string(body)), 'html')
+        if self.email_template:
+            content = jinja2.Template(open(self.email_template).read())
+            msg = MIMEText(content.render(title=self.name, body=self._prepare_string(body)), 'html')
+        else:
+            msg = MIMEText(body)
+
         msg['Subject'] = self.name
         msg['From'] = self.sender
-        msg['To'] = ','.join(self.recipients)
+        msg['To'] = ', '.join(self.recipients)
         return msg
 
     @classmethod
@@ -67,3 +72,7 @@ class EmailNotification(Notification):
         connection = smtplib.SMTP(self.mailhost, self.port)
         connection.send_message(msg, self.sender, self.recipients)
         connection.quit()
+
+
+def send_email(msg, mailhost, port, sender, recipients, subject, email_template=None, strict=False):
+    EmailNotification(subject, mailhost, port, sender, recipients, email_template, strict).notify(msg)
