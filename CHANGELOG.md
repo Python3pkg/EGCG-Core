@@ -1,7 +1,7 @@
 Changelog for EGCG-Core
 ===========================
 
-0.6.10 (unreleased)
+0.6.10 (2017-04-26)
 -------------------
 
 - Simplify Configuration classes to have only one that support all use-cases 
