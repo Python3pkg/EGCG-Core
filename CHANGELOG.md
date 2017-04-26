@@ -4,7 +4,8 @@ Changelog for EGCG-Core
 0.6.10 (unreleased)
 -------------------
 
-- Simplify Configuration classes to have only one that support all use-cases
+- Simplify Configuration classes to have only one that support all use-cases 
+- New send_mail function for sending one email
 
 0.6.9 (2017-03-24)
 ------------------
