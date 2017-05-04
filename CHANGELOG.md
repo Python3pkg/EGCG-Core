@@ -1,10 +1,10 @@
 Changelog for EGCG-Core
 ===========================
 
-0.6.11 (unreleased)
+0.6.11 (2017-05-04)
 -------------------
 
-- Nothing changed yet.
+- get_genome_version can check the config file for the default version if species is provided
 
 
 0.6.10 (2017-04-26)
