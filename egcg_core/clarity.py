@@ -87,14 +87,14 @@ def get_species_from_sample(sample_name):
             return get_species_name(species_string)
 
 
-def get_genome_version(dataset_name, species):
-    genome_version = get_sample(dataset_name).udf.get('Genome Version')
-    if genome_version is None:
-        genome_version = cfg.query('species', species, 'default')
-    reference = cfg.query('genomes', genome_version, 'fasta')
-    if not reference:
-        raise EGCGError('Could not find reference for species %s in sample %s ' % (species, dataset_name))
-    return genome_version, reference
+def get_genome_version2(sample_id, species=None):
+    s = get_sample(sample_id)
+    if not s:
+        return None
+    genome_version = s.udf.get('Genome Version', None)
+    if not genome_version and species:
+        return cfg.query('species', species, 'default')
+    return genome_version
 
 
 def sanitize_user_id(user_id):
