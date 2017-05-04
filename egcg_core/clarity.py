@@ -87,6 +87,16 @@ def get_species_from_sample(sample_name):
             return get_species_name(species_string)
 
 
+def get_genome_version(dataset_name, species):
+    genome_version = get_sample(dataset_name).udf.get('Genome Version')
+    if genome_version is None:
+        genome_version = cfg.query('species', species, 'default')
+    reference = cfg.query('genomes', genome_version, 'fasta')
+    if not reference:
+        raise EGCGError('Could not find reference for species %s in sample %s ' % (species, dataset_name))
+    return genome_version, reference
+
+
 def sanitize_user_id(user_id):
     if isinstance(user_id, str):
         return re.sub("[^\w_\-.]", "_", user_id)
@@ -313,13 +323,3 @@ def get_project(project_id):
         app_logger.warning('%s Project(s) found for name %s', len(projects), project_id)
         return None
     return projects[0]
-
-
-def get_genome_version(sample_id):
-    s = get_sample(sample_id)
-    if not s:
-        return None
-    genome_version = s.udf.get('Genome Version')
-    if not genome_version:
-        return None
-    return genome_version
