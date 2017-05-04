@@ -87,7 +87,7 @@ def get_species_from_sample(sample_name):
             return get_species_name(species_string)
 
 
-def get_genome_version2(sample_id, species=None):
+def get_genome_version(sample_id, species=None):
     s = get_sample(sample_id)
     if not s:
         return None
