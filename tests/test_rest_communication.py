@@ -1,6 +1,6 @@
 import json
 import pytest
-from unittest.mock import patch
+from unittest.mock import patch, mock_open
 from tests import FakeRestResponse, TestEGCG
 from egcg_core import rest_communication
 from egcg_core.exceptions import RestCommunicationError
@@ -50,6 +50,26 @@ class TestRestCommunication(TestEGCG):
         with pytest.raises(RestCommunicationError) as e2:
             p(query_string, requires=['thangs'])
             assert str(e2) == query_string + " did not contain all required fields: ['thangs']"
+
+    def test_detect_files_in_json(self):
+        json_dict = {'k1': 'v1', 'k2': 'v2'}
+        files, json_dict1 = self.comm._detect_files_in_json(json_dict)
+        assert files is None
+        assert json_dict1 == json_dict
+        json_dict = {'k1': 'v1', 'k2': ('file', 'file_path.txt')}
+        with patch('egcg_core.rest_communication.open', mock_open(read_data='file content')):
+            files, json_dict1 = self.comm._detect_files_in_json(json_dict)
+            assert files == {'k2': ('file_path.txt', 'file content', 'text/plain')}
+            assert json_dict1 == {'k1': 'v1'}
+
+        json_list = [json_dict, json_dict]
+        with patch('egcg_core.rest_communication.open', mock_open(read_data='file content')):
+            files_list, json_list1 = self.comm._detect_files_in_json(json_list)
+            assert files_list == [
+                {'k2': ('file_path.txt', 'file content', 'text/plain')},
+                {'k2': ('file_path.txt', '', 'text/plain')}
+            ]
+            assert json_list1 == [{'k1': 'v1'}, {'k1': 'v1'}]
 
     @patched_response
     def test_req(self, mocked_response):
@@ -108,12 +128,46 @@ class TestRestCommunication(TestEGCG):
     @patched_response
     def test_post_entry(self, mocked_response):
         self.comm.post_entry(test_endpoint, payload=test_request_content)
-        mocked_response.assert_called_with('POST', rest_url(test_endpoint), auth=auth, json=test_request_content)
+        mocked_response.assert_called_with(
+            'POST',
+            rest_url(test_endpoint),
+            auth=auth,
+            json=test_request_content,
+            files=None
+        )
+        test_request_content_plus_files = dict(test_request_content)
+        test_request_content_plus_files['f'] = ('file', 'file_path.txt')
+        with patch('egcg_core.rest_communication.open', mock_open(read_data='content')) as m_open:
+            self.comm.post_entry(test_endpoint, payload=test_request_content_plus_files)
+            mocked_response.assert_called_with(
+                'POST',
+                rest_url(test_endpoint),
+                auth=auth,
+                json=test_request_content,
+                files={'f': ('file_path.txt', 'content', 'text/plain')}
+            )
 
     @patched_response
     def test_put_entry(self, mocked_response):
         self.comm.put_entry(test_endpoint, 'an_element_id', payload=test_request_content)
-        mocked_response.assert_called_with('PUT', rest_url(test_endpoint) + 'an_element_id', auth=auth, json=test_request_content)
+        mocked_response.assert_called_with(
+            'PUT',
+            rest_url(test_endpoint) + 'an_element_id',
+            auth=auth,
+            json=test_request_content,
+            files=None
+        )
+        test_request_content_plus_files = dict(test_request_content)
+        test_request_content_plus_files['f'] = ('file', 'file_path.txt')
+        with patch('egcg_core.rest_communication.open', mock_open(read_data='content')) as m_open:
+            self.comm.put_entry(test_endpoint, 'an_element_id', payload=test_request_content_plus_files)
+            mocked_response.assert_called_with(
+                'PUT',
+                rest_url(test_endpoint) + 'an_element_id',
+                auth=auth,
+                json=test_request_content,
+                files={'f': ('file_path.txt', 'content', 'text/plain')}
+            )
 
     @patch(ppath('get_document'), return_value=test_patch_document)
     @patched_response
@@ -133,7 +187,8 @@ class TestRestCommunication(TestEGCG):
             rest_url(test_endpoint) + '1337',
             headers={'If-Match': 1234567},
             auth=auth,
-            json={'list_to_update': ['this', 'that', 'other', 'another']}
+            json={'list_to_update': ['this', 'that', 'other', 'another']},
+            files=None
         )
 
     @patch(ppath('get_document'), return_value=test_patch_document)
@@ -146,7 +201,8 @@ class TestRestCommunication(TestEGCG):
             'PATCH',
             rest_url(test_endpoint) + '1337',
             headers={'If-Match': 1234567, 'Authorization': 'Token an_auth_token'},
-            json={'this': 'that'}
+            json={'this': 'that'},
+            files=None
         )
 
     def test_post_or_patch(self):
