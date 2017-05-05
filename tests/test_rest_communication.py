@@ -136,17 +136,17 @@ class TestRestCommunication(TestEGCG):
             json=test_request_content,
             files=None
         )
+        file_path = os.path.join(self.assets_path, 'test_to_upload.txt')
         test_request_content_plus_files = dict(test_request_content)
-        test_request_content_plus_files['f'] = ('file', 'file_path.txt')
-        with patch('egcg_core.rest_communication.open', mock_open(read_data='content')) as m_open:
-            self.comm.post_entry(test_endpoint, payload=test_request_content_plus_files)
-            mocked_response.assert_called_with(
-                'POST',
-                rest_url(test_endpoint),
-                auth=auth,
-                json=test_request_content,
-                files={'f': ('file_path.txt', 'content', 'text/plain')}
-            )
+        test_request_content_plus_files['f'] = ('file', file_path)
+        self.comm.post_entry(test_endpoint, payload=test_request_content_plus_files)
+        mocked_response.assert_called_with(
+            'POST',
+            rest_url(test_endpoint),
+            auth=auth,
+            json=test_request_content,
+            files={'f': (file_path, b'test content', 'text/plain')}
+        )
 
     @patched_response
     def test_put_entry(self, mocked_response):
@@ -158,17 +158,18 @@ class TestRestCommunication(TestEGCG):
             json=test_request_content,
             files=None
         )
+
+        file_path = os.path.join(self.assets_path, 'test_to_upload.txt')
         test_request_content_plus_files = dict(test_request_content)
-        test_request_content_plus_files['f'] = ('file', 'file_path.txt')
-        with patch('egcg_core.rest_communication.open', mock_open(read_data='content')) as m_open:
-            self.comm.put_entry(test_endpoint, 'an_element_id', payload=test_request_content_plus_files)
-            mocked_response.assert_called_with(
-                'PUT',
-                rest_url(test_endpoint) + 'an_element_id',
-                auth=auth,
-                json=test_request_content,
-                files={'f': ('file_path.txt', 'content', 'text/plain')}
-            )
+        test_request_content_plus_files['f'] = ('file', file_path)
+        self.comm.put_entry(test_endpoint, 'an_element_id', payload=test_request_content_plus_files)
+        mocked_response.assert_called_with(
+            'PUT',
+            rest_url(test_endpoint) + 'an_element_id',
+            auth=auth,
+            json=test_request_content,
+            files={'f': (file_path, b'test content', 'text/plain')}
+        )
 
     @patch(ppath('get_document'), return_value=test_patch_document)
     @patched_response
