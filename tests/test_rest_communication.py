@@ -1,4 +1,6 @@
 import json
+
+import os
 import pytest
 from unittest.mock import patch, mock_open
 from tests import FakeRestResponse, TestEGCG
@@ -54,22 +56,21 @@ class TestRestCommunication(TestEGCG):
     def test_detect_files_in_json(self):
         json_dict = {'k1': 'v1', 'k2': 'v2'}
         files, json_dict1 = self.comm._detect_files_in_json(json_dict)
+        file_path = os.path.join(self.assets_path, 'test_to_upload.txt')
         assert files is None
         assert json_dict1 == json_dict
-        json_dict = {'k1': 'v1', 'k2': ('file', 'file_path.txt')}
-        with patch('egcg_core.rest_communication.open', mock_open(read_data='file content')):
-            files, json_dict1 = self.comm._detect_files_in_json(json_dict)
-            assert files == {'k2': ('file_path.txt', 'file content', 'text/plain')}
-            assert json_dict1 == {'k1': 'v1'}
+        json_dict = {'k1': 'v1', 'k2': ('file', file_path)}
+        files, json_dict1 = self.comm._detect_files_in_json(json_dict)
+        assert files == {'k2': (file_path, b'test content', 'text/plain')}
+        assert json_dict1 == {'k1': 'v1'}
 
         json_list = [json_dict, json_dict]
-        with patch('egcg_core.rest_communication.open', mock_open(read_data='file content')):
-            files_list, json_list1 = self.comm._detect_files_in_json(json_list)
-            assert files_list == [
-                {'k2': ('file_path.txt', 'file content', 'text/plain')},
-                {'k2': ('file_path.txt', '', 'text/plain')}
-            ]
-            assert json_list1 == [{'k1': 'v1'}, {'k1': 'v1'}]
+        files_list, json_list1 = self.comm._detect_files_in_json(json_list)
+        assert files_list == [
+            {'k2': (file_path, b'test content', 'text/plain')},
+            {'k2': (file_path, b'test content', 'text/plain')}
+        ]
+        assert json_list1 == [{'k1': 'v1'}, {'k1': 'v1'}]
 
     @patched_response
     def test_req(self, mocked_response):
