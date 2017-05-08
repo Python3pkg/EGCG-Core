@@ -144,7 +144,7 @@ class TestRestCommunication(TestEGCG):
             'POST',
             rest_url(test_endpoint),
             auth=auth,
-            json=test_request_content,
+            data=test_request_content,
             files={'f': (file_path, b'test content', 'text/plain')}
         )
 
@@ -167,7 +167,7 @@ class TestRestCommunication(TestEGCG):
             'PUT',
             rest_url(test_endpoint) + 'an_element_id',
             auth=auth,
-            json=test_request_content,
+            data=test_request_content,
             files={'f': (file_path, b'test content', 'text/plain')}
         )
 
