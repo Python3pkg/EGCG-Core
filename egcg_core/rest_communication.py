@@ -110,6 +110,12 @@ class Communicator(AppLogger):
             # noinspection PyTypeChecker
             kwargs['headers'] = dict(kwargs.get('headers', {}), Authorization='Token ' + self.auth)
 
+        # can't upload json and files at the same time so move the json parameter to data
+        # data can't upload complex structure that would require json encoding.
+        # This mean we can't upload data with sub list or sub dict at the same time as files
+        if 'files' in kwargs and kwargs['files'] and 'json' in kwargs and kwargs['json']:
+            kwargs['data'] = kwargs.pop('json')
+
         r = requests.request(method, url, **kwargs)
 
         kwargs.pop('auth', None)
