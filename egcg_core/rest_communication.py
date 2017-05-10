@@ -168,7 +168,7 @@ class Communicator(AppLogger):
         files, payload = self._detect_files_in_json(payload)
         return self._req('PUT', urljoin(self.api_url(endpoint), element_id), json=payload, files=files)
 
-    def _patch_entry(self, endpoint, doc, payload, update_lists=None, files_content=None):
+    def _patch_entry(self, endpoint, doc, payload, update_lists=None):
         """
         Patch a specific database item (specified by doc) with the given data payload.
         :param str endpoint:
