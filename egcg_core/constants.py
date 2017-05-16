@@ -28,7 +28,7 @@ ELEMENT_FASTQC_REPORT_R1 = 'fastqc_report_r1'
 ELEMENT_FASTQC_REPORT_R2 = 'fastqc_report_r2'
 ELEMENT_ADAPTER_TRIM_R1 = 'adaptor_bases_removed_r1'
 ELEMENT_ADAPTER_TRIM_R2 = 'adaptor_bases_removed_r2'
-ELEMENT_TILE_FILTERED = 'tile_filtered'
+ELEMENT_TILES_FILTERED = 'tiles_filtered'
 ELEMENT_TRIM_R1_LENGTH = 'trim_r1'
 ELEMENT_TRIM_R2_LENGTH = 'trim_r2'
 
