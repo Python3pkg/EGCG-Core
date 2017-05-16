@@ -1,10 +1,10 @@
 Changelog for EGCG-Core
 ===========================
 
-0.6.12 (unreleased)
+0.6.12 (2017-05-16)
 -------------------
 
-- Nothing changed yet.
+- add new constants to store trimming/filtering of run elements 
 
 
 0.6.11 (2017-05-04)
