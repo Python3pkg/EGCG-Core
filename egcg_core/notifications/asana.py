@@ -1,4 +1,4 @@
-import asana
+from . import asana
 from cached_property import cached_property
 
 from .notification import Notification

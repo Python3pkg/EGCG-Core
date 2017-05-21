@@ -33,7 +33,7 @@ class TestLoggingConfiguration(TestEGCG):
     def test_get_logger(self):
         l = self.log_cfg.get_logger('a_logger')
         assert l.level == self.log_cfg._log_level
-        assert l in self.log_cfg.loggers.values()
+        assert l in list(self.log_cfg.loggers.values())
         assert list(self.log_cfg.handlers) == l.handlers
 
     def test_add_handler(self):

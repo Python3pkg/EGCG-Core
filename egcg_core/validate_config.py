@@ -70,8 +70,8 @@ def _config_import_references(file):
 
 
 def validate_main_config(cfg, file):
-    print('_' * 36)
-    print('Searching for missing configs in %s:' % basename(file))
+    print(('_' * 36))
+    print(('Searching for missing configs in %s:' % basename(file)))
     getitems, gets, queries = find_config_references(file)
     for i in getitems + queries:
         if not cfg.query(*i.ref):
@@ -80,7 +80,7 @@ def validate_main_config(cfg, file):
     for i in gets:
         if not cfg.get(i):
             print(i)
-    print('_' * 36)
+    print(('_' * 36))
 
 
 def main():

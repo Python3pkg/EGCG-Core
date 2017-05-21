@@ -44,7 +44,7 @@ class TestNotificationCentre(TestEGCG):
     def test_notify(self):
         self.notification_centre.subscribers = {'asana': Mock(), 'email': Mock()}
         self.notification_centre.notify_all('a message')
-        for name, s in self.notification_centre.subscribers.items():
+        for name, s in list(self.notification_centre.subscribers.items()):
             s.notify.assert_called_with('a message')
 
 

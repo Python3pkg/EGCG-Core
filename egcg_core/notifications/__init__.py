@@ -32,5 +32,5 @@ class NotificationCentre(AppLogger):
                 self.debug('Tried to notify by %s, but no configuration present', s)
 
     def notify_all(self, msg):
-        for name, s in self.subscribers.items():
+        for name, s in list(self.subscribers.items()):
             s.notify(msg)

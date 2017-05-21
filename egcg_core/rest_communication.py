@@ -16,7 +16,7 @@ class Communicator(AppLogger):
     @staticmethod
     def serialise(queries):
         serialised_queries = {}
-        for k, v in queries.items():
+        for k, v in list(queries.items()):
             serialised_queries[k] = json.dumps(v) if type(v) is dict else v
         return serialised_queries
 

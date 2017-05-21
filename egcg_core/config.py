@@ -87,7 +87,7 @@ class Configuration:
     @classmethod
     def _merge_dicts(cls, default_dict, override_dict):
         """Recursively merge a default dict and an overriding dict."""
-        for k in set(override_dict.keys()).union(default_dict.keys()):
+        for k in set(override_dict.keys()).union(list(default_dict.keys())):
             if k in default_dict and k in override_dict:
                 if type(default_dict[k]) is dict and type(override_dict[k]) is dict:
                     yield k, dict(cls._merge_dicts(default_dict[k], override_dict[k]))

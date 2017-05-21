@@ -1,7 +1,7 @@
 import jinja2
 import smtplib
 from time import sleep
-from email.mime.text import MIMEText
+from .email.mime.text import MIMEText
 from egcg_core.exceptions import EGCGError
 from .notification import Notification
 
